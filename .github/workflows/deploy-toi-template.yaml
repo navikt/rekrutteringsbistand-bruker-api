@@ -31,18 +31,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod +x ./gradlew
-          ./gradlew :${{ inputs.app_name }}:test :${{ inputs.app_name }}:installDist
+          ./gradlew :test :installDist
       - name: Push docker image to GAR
         uses: nais/docker-build-push@v0
         id: docker-build-push
         with:
           team: toi
-          image_suffix: ${{ inputs.app_name }}
-          dockerfile: ${{ inputs.app_name }}/Dockerfile
-          docker_context: ${{ inputs.app_name }}
           tag: ${{ github.ref == 'refs/heads/main' && 'latest' || github.sha }}
-          build_args: |
-            APP_NAME=${{ inputs.app_name }}
 
   deploy-to-dev-gcp:
     name: Deploy to dev-gcp
@@ -54,8 +49,8 @@ jobs:
       - uses: nais/deploy/actions/deploy@v2
         env:
           CLUSTER: dev-gcp
-          RESOURCE: ${{ inputs.app_name }}/nais.yaml
-          VARS: ${{ inputs.app_name }}/nais-dev.yaml
+          RESOURCE: .nais/app.yaml
+          VARS: .nais/app-dev.yaml
           VAR: image=${{ needs.build-and-publish.outputs.image }}
 
 #  deploy-to-prod-gcp:
