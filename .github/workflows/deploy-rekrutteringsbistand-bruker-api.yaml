@@ -1,11 +1,6 @@
 name: rekrutteringsbistand-bruker-api
 
-on:
-  push:
-    paths:
-      - src/**
-      - .github/workflows/deploy-rekrutteringsbistand-bruker-api.yaml
-      - .github/workflows/deploy-toi-template.yaml
+on: [push, workflow_dispatch]
 
 jobs:
   build-deploy:
