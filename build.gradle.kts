@@ -35,7 +35,6 @@ java {
 application {
     // Define the main class for the application.
     mainClass = "no.nav.toi.rekrutteringsbistand.bruker.api.AppKt"
-    applicationName = "app"
 }
 
 tasks.named<Test>("test") {

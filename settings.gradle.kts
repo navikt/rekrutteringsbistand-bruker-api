@@ -11,4 +11,3 @@ plugins {
 }
 
 rootProject.name = "rekrutteringsbistand-bruker-api"
-include("app")
