@@ -28,3 +28,10 @@ spec:
         - id: loki
         - id: elastic
       enabled: true
+  gcp:
+    sqlInstances:
+      - type: {{ postgres_versjon }}
+        tier: {{ gcp_db_tier }}
+        diskAutoresize: {{ gcp_disk_autoresize }}
+        databases:
+          - name: rekrutteringsbistand-bruker-api
