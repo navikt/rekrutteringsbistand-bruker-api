@@ -5,7 +5,7 @@ WORKDIR /$APP_NAME
 # Asume that logback.xml is located in the project/app root dir.
 # The unconventional location is a signal to developers to make them aware that we use this file in an unconventional
 # way in the ENTRYPOINT command in this Dockerfile.
-COPY logback.xml /
+# COPY logback.xml /
 
 # Copy the prebuilt distribution (run: ./gradlew clean installDist)
 COPY build/install/app/ /app/
