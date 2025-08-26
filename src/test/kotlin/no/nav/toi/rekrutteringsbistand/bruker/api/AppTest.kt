@@ -3,8 +3,9 @@
  */
 package no.nav.toi.rekrutteringsbistand.bruker.api
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Assertions.assertNotNull
+import kotlin.test.Test
+import kotlin.test.assertNotNull
+
 
 class AppTest {
     @Test
