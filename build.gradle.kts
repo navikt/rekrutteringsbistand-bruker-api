@@ -15,7 +15,27 @@ repositories {
     mavenCentral()
 }
 
+val jacksonVersion = "2.19.2"
+val javalinVersion = "6.7.0"
+val micrometerVersion = "1.15.2"
+
 dependencies {
+    implementation(kotlin("stdlib"))
+    implementation("io.javalin:javalin:$javalinVersion")
+    implementation("io.javalin:javalin-micrometer:$javalinVersion")
+    implementation("org.eclipse.jetty:jetty-util")
+    implementation("io.micrometer:micrometer-core:$micrometerVersion")
+    implementation("io.micrometer:micrometer-registry-prometheus:$micrometerVersion")
+    implementation("io.prometheus:simpleclient_common:0.16.0")
+
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
+
+    implementation("ch.qos.logback:logback-classic:1.5.18")
+    implementation("net.logstash.logback:logstash-logback-encoder:8.1")
+    implementation("com.papertrailapp:logback-syslog4j:1.0.0")
+    implementation("org.codehaus.janino:janino:3.1.12")
+
     testImplementation(kotlin("test"))
 }
 

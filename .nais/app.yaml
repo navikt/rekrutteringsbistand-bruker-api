@@ -13,3 +13,12 @@ spec:
     requests:
       cpu: 200m
       memory: 128Mi
+  liveness:
+    path: /internal/isAlive
+    initialDelay: 40
+  readiness:
+    path: /internal/isReady
+    initialDelay: 40
+  prometheus:
+    enabled: true
+    path: /internal/prometheus
