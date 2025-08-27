@@ -18,6 +18,7 @@ repositories {
 val jacksonVersion = "2.19.2"
 val javalinVersion = "6.7.0"
 val micrometerVersion = "1.15.2"
+val flywayVersion = "11.11.2"
 
 dependencies {
     implementation(kotlin("stdlib"))
@@ -35,6 +36,11 @@ dependencies {
     implementation("net.logstash.logback:logstash-logback-encoder:8.1")
     implementation("com.papertrailapp:logback-syslog4j:1.0.0")
     implementation("org.codehaus.janino:janino:3.1.12")
+
+    implementation("org.postgresql:postgresql:42.7.7")
+    implementation("org.flywaydb:flyway-core:$flywayVersion")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql:$flywayVersion")
+    implementation("com.zaxxer:HikariCP:7.0.2")
 
     testImplementation(kotlin("test"))
 }
