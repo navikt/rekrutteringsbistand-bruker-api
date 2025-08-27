@@ -74,15 +74,15 @@ fun startJavalin(
     }.start(port)
 }
 
-private fun getenv(key: String): String =
+private fun getEnv(key: String): String =
     System.getenv(key) ?: throw NullPointerException("Det finnes ingen miljøvariabel med navn [$key]")
 
 private fun createDataSource(): DataSource =
     HikariConfig().apply {
-        val base = getenv("NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_JDBC_URL")
+        val base = getEnv("NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_JDBC_URL")
         jdbcUrl = "$base&reWriteBatchedInserts=true"
-        username = getenv("NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_USERNAME")
-        password = getenv("NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_PASSWORD")
+        username = getEnv("NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_USERNAME")
+        password = getEnv("NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_PASSWORD")
         driverClassName = "org.postgresql.Driver"
         maximumPoolSize = 4
         minimumIdle = 1

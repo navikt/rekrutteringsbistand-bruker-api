@@ -19,6 +19,7 @@ val jacksonVersion = "2.19.2"
 val javalinVersion = "6.7.0"
 val micrometerVersion = "1.15.2"
 val flywayVersion = "11.11.2"
+val testContainerVersion = "1.21.3"
 
 dependencies {
     implementation(kotlin("stdlib"))
@@ -43,6 +44,8 @@ dependencies {
     implementation("com.zaxxer:HikariCP:7.0.2")
 
     testImplementation(kotlin("test"))
+    testImplementation("org.testcontainers:testcontainers:${testContainerVersion}")
+    testImplementation("org.testcontainers:postgresql:${testContainerVersion}")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
