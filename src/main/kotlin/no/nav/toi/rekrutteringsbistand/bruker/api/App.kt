@@ -1,5 +1,7 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api
 
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
 import io.javalin.Javalin
 import io.javalin.json.JavalinJackson
 import io.javalin.micrometer.MicrometerPlugin
@@ -7,6 +9,9 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 import java.util.*
+import javax.sql.DataSource
+import org.flywaydb.core.Flyway
+
 
 fun main() {
     val env = System.getenv()
@@ -17,12 +22,13 @@ fun main() {
 const val KONSUMENT_ID_MDC_KEY = "konsument_id"
 
 fun ApplicationContext.startApp(): Javalin {
+    val dataSource = createDataSource()
     val javalin = startJavalin(
         port = 8080,
         jsonMapper = JavalinJackson(objectMapper),
         meterRegistry = prometheusRegistry,
+        dataSource = dataSource
     )
-
     setupAllRoutes(javalin)
 
     return javalin
@@ -36,7 +42,9 @@ fun startJavalin(
     port: Int = 8080,
     jsonMapper: JavalinJackson,
     meterRegistry: PrometheusMeterRegistry,
+    dataSource: DataSource,
 ): Javalin {
+    kjørFlywayMigreringer(dataSource)
     val log = LoggerFactory.getLogger("javalin")
     val micrometerPlugin = MicrometerPlugin { micrometerConfig ->
         micrometerConfig.registry = meterRegistry
@@ -64,4 +72,29 @@ fun startJavalin(
         log.info("Exception: ${e.message}", e)
         ctx.status(500).result(e.message ?: "")
     }.start(port)
+}
+
+private fun getenv(key: String): String =
+    System.getenv(key) ?: throw NullPointerException("Det finnes ingen miljøvariabel med navn [$key]")
+
+private fun createDataSource(): DataSource =
+    HikariConfig().apply {
+        val base = getenv("NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_JDBC_URL")
+        jdbcUrl = "$base&reWriteBatchedInserts=true"
+        username = getenv("NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_USERNAME")
+        password = getenv("NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_PASSWORD")
+        driverClassName = "org.postgresql.Driver"
+        maximumPoolSize = 4
+        minimumIdle = 1
+        isAutoCommit = true
+        transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+        initializationFailTimeout = 5_000
+        validate()
+    }.let(::HikariDataSource)
+
+private fun kjørFlywayMigreringer(dataSource: DataSource) {
+    Flyway.configure()
+        .dataSource(dataSource)
+        .load()
+        .migrate()
 }
