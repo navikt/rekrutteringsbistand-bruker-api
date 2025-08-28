@@ -46,6 +46,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation("org.testcontainers:testcontainers:${testContainerVersion}")
     testImplementation("org.testcontainers:postgresql:${testContainerVersion}")
+    testImplementation("org.assertj:assertj-core:3.24.2")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
@@ -64,8 +65,4 @@ application {
 tasks.named<Test>("test") {
     // Use JUnit Platform for unit tests.
     useJUnitPlatform()
-}
-// Fjern når testene ikke skal være tomme
-tasks.withType<AbstractTestTask>().configureEach {
-    failOnNoDiscoveredTests = false
 }

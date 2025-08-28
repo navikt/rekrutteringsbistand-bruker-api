@@ -7,9 +7,9 @@ data class Nyhet (
     val nyhetId: UUID? = null,
     val tittel: String,
     val innhold: String,
-    val opprettetDato: LocalDateTime,
+    val opprettetDato: LocalDateTime? = null,
     val opprettetAv: String,
-    val sistEndretDato: LocalDateTime,
+    val sistEndretDato: LocalDateTime? = null,
     val sistEndretAv: String,
 )
 
