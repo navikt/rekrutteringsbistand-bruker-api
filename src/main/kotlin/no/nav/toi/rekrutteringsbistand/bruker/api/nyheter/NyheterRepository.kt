@@ -46,6 +46,39 @@ class NyheterRepository(private val dataSource: DataSource) {
             }
         }
 
+    fun hentNyheter(): List<Nyhet> {
+        val nyheterListe = mutableListOf<Nyhet>()
+        dataSource.connection.use { c ->
+            c.prepareStatement(
+                """
+            select $COL_NYHET_ID, $COL_TITTEL, $COL_INNHOLD, $COL_OPPRETTET_DATO, $COL_OPPRETTET_AV, $COL_SIST_ENDRET_DATO, $COL_SIST_ENDRET_AV
+            from $TABLE
+        """.trimIndent()
+            ).use { ps ->
+                ps.executeQuery().use { rs ->
+                    while (rs.next()) {
+                        nyheterListe.add(rs.toNyhet())
+                    }
+                }
+            }
+            return nyheterListe
+        }
+    }
+
+    fun hentNyhetPåId(nyhetId : UUID): Nyhet =
+        dataSource.connection.use { c ->
+            c.prepareStatement(
+                """
+            select $COL_NYHET_ID, $COL_TITTEL, $COL_INNHOLD, $COL_OPPRETTET_DATO, $COL_OPPRETTET_AV, $COL_SIST_ENDRET_DATO, $COL_SIST_ENDRET_AV
+            from $TABLE
+            where $COL_NYHET_ID=?;
+        """.trimIndent()
+            ).use { ps ->
+                ps.setObject(1, nyhetId)
+                ps.executeQuery().use { rs -> if (rs.next()) rs.toNyhet() else error("Henting av nyhet feilet") }
+            }
+        }
+
     private fun ResultSet.toNyhet(): Nyhet =
         Nyhet(
             nyhetId = getObject(COL_NYHET_ID, UUID::class.java),
