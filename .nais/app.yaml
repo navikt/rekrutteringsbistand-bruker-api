@@ -47,3 +47,5 @@ spec:
   env:
     - name: REKRUTTERINGSBISTAND_UTVIKLER
       value: {{adGruppeUtvikler}}
+    - name: REKRUTTERINGSBISTAND_ARBEIDSGIVERRETTET
+      value: {{adGruppeArbeidsgiverrettet}}
