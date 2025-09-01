@@ -38,6 +38,9 @@ dependencies {
     implementation("com.papertrailapp:logback-syslog4j:1.0.0")
     implementation("org.codehaus.janino:janino:3.1.12")
 
+    implementation("com.auth0:java-jwt:4.5.0")
+    implementation("com.auth0:jwks-rsa:0.23.0")
+
     implementation("org.postgresql:postgresql:42.7.7")
     implementation("org.flywaydb:flyway-core:$flywayVersion")
     runtimeOnly("org.flywaydb:flyway-database-postgresql:$flywayVersion")
@@ -47,6 +50,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers:${testContainerVersion}")
     testImplementation("org.testcontainers:postgresql:${testContainerVersion}")
     testImplementation("org.assertj:assertj-core:3.24.2")
+    testImplementation("no.nav.security:mock-oauth2-server:2.2.1")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.

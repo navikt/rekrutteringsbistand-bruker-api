@@ -24,7 +24,11 @@ fun ApplicationContext.startApp(): Javalin {
         port = 8080,
         jsonMapper = JavalinJackson(objectMapper),
         meterRegistry = prometheusRegistry,
-        dataSource = dataSource
+        dataSource = dataSource,
+        tilgangsstyring = tilgangsstyring,
+        autentiseringskonfigurasjoner = autentiseringskonfigurasjoner,
+        arbeidsgiverrettet = arbeidsgiverrettet,
+        utvikler = utvikler
     )
     setupAllRoutes(javalin)
 
@@ -40,28 +44,31 @@ fun startJavalin(
     jsonMapper: JavalinJackson,
     meterRegistry: PrometheusMeterRegistry,
     dataSource: DataSource,
+    tilgangsstyring: Tilgangsstyring,
+    autentiseringskonfigurasjoner: List<Autentiseringskonfigurasjon>,
+    utvikler: UUID,
+    arbeidsgiverrettet: UUID
 ): Javalin {
     kjørFlywayMigreringer(dataSource)
     val log = LoggerFactory.getLogger("javalin")
     val micrometerPlugin = MicrometerPlugin { micrometerConfig ->
         micrometerConfig.registry = meterRegistry
     }
-
-    return Javalin.create {
+        return Javalin.create {
         it.router.ignoreTrailingSlashes = true
         it.router.treatMultipleSlashesAsSingleSlash = true
         it.http.defaultContentType = "application/json"
         it.jsonMapper(jsonMapper)
         it.registerPlugin(micrometerPlugin)
 
-    }.before { ctx ->
-        val callId = ctx.header("Nav-Call-Id") ?: ctx.header("Nav-CallId") ?: UUID.randomUUID().toString()
-        ctx.attribute("TraceId", callId)
-        MDC.put("TraceId", callId)
-    }.after {
-        MDC.remove("TraceId")
-        MDC.remove("U")
-        MDC.remove(KONSUMENT_ID_MDC_KEY)
+    }.beforeMatched { ctx ->
+        if(ctx.routeRoles().isEmpty()) {
+            return@beforeMatched
+        }
+        tilgangsstyring.manage(ctx = ctx,
+            routeRoles = ctx.routeRoles(),
+            autentiseringskonfigurasjoner = autentiseringskonfigurasjoner,
+            rolleUuidSpesifikasjon = RolleUuidSpesifikasjon(arbeidsgiverrettet, utvikler))
     }.exception(IllegalArgumentException::class.java) { e, ctx ->
         log.info("IllegalArgumentException: ${e.message}", e)
         ctx.status(400).result(e.message ?: "")

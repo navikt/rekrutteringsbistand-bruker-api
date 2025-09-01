@@ -35,3 +35,15 @@ spec:
         diskAutoresize: {{ gcp_disk_autoresize }}
         databases:
           - name: rekrutteringsbistand-bruker-api
+  azure:
+    application:
+      enabled: true
+      allowAllUsers: false
+      claims:
+        extra:
+          - NAVident
+        groups:
+          - id: {{ adGruppeUtvikler }}
+  env:
+    - name: REKRUTTERINGSBISTAND_UTVIKLER
+      value: {{adGruppeUtvikler}}

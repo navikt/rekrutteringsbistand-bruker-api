@@ -8,15 +8,30 @@ data class Nyhet (
     val tittel: String,
     val innhold: String,
     val opprettetDato: LocalDateTime? = null,
-    val opprettetAv: String,
+    val opprettetAv: String? = null,
     val sistEndretDato: LocalDateTime? = null,
     val sistEndretAv: String,
-)
+){
+    fun tilNyhetDtoResponse(): NyhetDtoResponse {
+        if (nyhetId != null && opprettetDato != null) {
+            return NyhetDtoResponse(nyhetId = nyhetId, tittel = tittel, innhold = innhold, opprettetDato = opprettetDato)
+        }
+        throw RuntimeException("Kunne ikke konvertere nyhet til nyhetDtoResponse")
+    }
+}
 
 data class NyhetDtoRequest (
     val tittel: String,
     val innhold: String,
-)
+){
+    fun tilNyhet(nyhetId: UUID? = null, navIdent: String): Nyhet {
+        return if (nyhetId != null) {
+            Nyhet(nyhetId = nyhetId, tittel = tittel, innhold = innhold, sistEndretAv = navIdent)
+        } else {
+            Nyhet(tittel = tittel, innhold = innhold, opprettetAv = navIdent, sistEndretAv = navIdent)
+        }
+    }
+}
 
 data class NyhetDtoResponse (
     val nyhetId: UUID,

@@ -45,15 +45,34 @@ open class ApplicationContext(envInn: Map<String, String>) {
 
     val naisController = NaisController(prometheusRegistry)
 
-    private fun getEnv(key: String): String =
+    val tilgangsstyring = Tilgangsstyring()
+
+    val arbeidsgiverrettet = UUID.fromString(getenv("REKRUTTERINGSBISTAND_ARBEIDSGIVERRETTET"))
+    val utvikler = UUID.fromString(getenv("REKRUTTERINGSBISTAND_UTVIKLER"))
+
+    val autentiseringskonfigurasjoner = listOfNotNull(
+        Autentiseringskonfigurasjon(
+            audience = getenv("AZURE_APP_CLIENT_ID"),
+            issuer = getenv("AZURE_OPENID_CONFIG_ISSUER"),
+            jwksUri = getenv("AZURE_OPENID_CONFIG_JWKS_URI")
+        ),
+        if (System.getenv("NAIS_CLUSTER_NAME") == "dev-gcp")
+            Autentiseringskonfigurasjon(
+                audience = "dev-gcp:toi:rekrutteringstreff-api",
+                issuer = "https://fakedings.intern.dev.nav.no/fake",
+                jwksUri = "https://fakedings.intern.dev.nav.no/fake/jwks",
+            ) else null
+    )
+
+    private fun getenv(key: String): String =
         env[key] ?: throw NullPointerException("Det finnes ingen miljøvariabel med navn [$key]")
 
     private fun createDataSource(): DataSource =
         HikariConfig().apply {
-            val base = getEnv("NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_JDBC_URL")
+            val base = getenv("NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_JDBC_URL")
             jdbcUrl = "$base&reWriteBatchedInserts=true"
-            username = getEnv("NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_USERNAME")
-            password = getEnv("NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_PASSWORD")
+            username = getenv("NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_USERNAME")
+            password = getenv("NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_PASSWORD")
             driverClassName = "org.postgresql.Driver"
             maximumPoolSize = 4
             minimumIdle = 1
