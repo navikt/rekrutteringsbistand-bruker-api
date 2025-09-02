@@ -3,7 +3,6 @@ package no.nav.toi.rekrutteringsbistand.bruker.api.nyheter
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.javalin.Javalin
 import io.javalin.http.Context
-import io.javalin.security.RouteRole
 import no.nav.toi.rekrutteringsbistand.bruker.api.NavAnsattRolle
 import no.nav.toi.rekrutteringsbistand.bruker.api.Tilgangsrolle
 import no.nav.toi.rekrutteringsbistand.bruker.api.autentisertNavBruker

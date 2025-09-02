@@ -17,8 +17,12 @@ import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.core.instrument.binder.system.UptimeMetrics
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.NyheterController
+import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.NyheterRepository
 import java.util.*
 import javax.sql.DataSource
+
+
 
 @Suppress("MemberVisibilityCanBePrivate")
 open class ApplicationContext(envInn: Map<String, String>) {
@@ -43,7 +47,11 @@ open class ApplicationContext(envInn: Map<String, String>) {
         LogbackMetrics().bindTo(registry)
     }
 
+    val nyheterRepository = NyheterRepository(dataSource)
+
     val naisController = NaisController(prometheusRegistry)
+
+    val nyheterController = NyheterController(objectMapper, nyheterRepository)
 
     val tilgangsstyring = Tilgangsstyring()
 

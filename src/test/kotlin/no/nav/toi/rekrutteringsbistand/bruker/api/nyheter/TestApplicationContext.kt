@@ -18,7 +18,7 @@ class TestApplicationContext(
         }
 ): ApplicationContext(localEnv) {
     val mockOauth2Server = MockOAuth2Server().also { server ->
-        server.start()
+        server.start(port = 8081)
         localEnv["AZURE_OPENID_CONFIG_JWKS_URI"] = server.jwksUrl("azuread").toString()
         localEnv["AZURE_APP_WELL_KNOWN_URL"] = server.wellKnownUrl("azuread").toString()
     }

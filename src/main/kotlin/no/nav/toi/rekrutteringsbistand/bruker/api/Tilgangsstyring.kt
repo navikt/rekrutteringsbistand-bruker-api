@@ -25,7 +25,7 @@ class Tilgangsstyring {
             val jwtVerifiers = autentiseringskonfigurasjoner.flatMap { it.jwtVerifiers() }
 
             val decoded = verifyJwt(jwtVerifiers, token)
-            ctx.attribute("authenticatedUser", AutentisertNavBruker.fromJwt(decoded, rolleUuidSpesifikasjon))
+            ctx.attribute("autentisertNavBruker", AutentisertNavBruker.fromJwt(decoded, rolleUuidSpesifikasjon))
         }
     }
 }

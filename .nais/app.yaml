@@ -44,8 +44,9 @@ spec:
           - NAVident
         groups:
           - id: {{ adGruppeUtvikler }}
+          - id: {{ adGruppeArbeidsgiverrettet }}
   env:
     - name: REKRUTTERINGSBISTAND_UTVIKLER
-      value: {{adGruppeUtvikler}}
+      value: {{ adGruppeUtvikler }}
     - name: REKRUTTERINGSBISTAND_ARBEIDSGIVERRETTET
-      value: {{adGruppeArbeidsgiverrettet}}
+      value: {{ adGruppeArbeidsgiverrettet }}
