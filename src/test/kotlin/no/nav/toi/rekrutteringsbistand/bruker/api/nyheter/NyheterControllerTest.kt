@@ -157,7 +157,6 @@ class NyheterControllerTest : TestRunningApplication() {
         val request = HttpRequest.newBuilder()
             .uri(URI("$lokalUrlBase/api/nyheter/$uuid"))
             .header("Authorization", "Bearer ${accessToken.serialize()}")
-            .header("uuid", uuid.toString())
             .PUT(HttpRequest.BodyPublishers.ofString(testNyhetJson)).build()
         val response = HttpClient.newBuilder().build().send(request, HttpResponse.BodyHandlers.ofString())
         assertThat(response.statusCode()).isEqualTo(200)

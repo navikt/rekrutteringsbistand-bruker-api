@@ -36,7 +36,7 @@ class NyheterController(
     private fun oppdaterNyhet(ctx: Context){
         ctx.autentisertNavBruker().verifiserAutorisasjon(NavAnsattRolle.UTVIKLER)
         val nyhetDtoRequest  = objectMapper.readValue(ctx.body(), NyhetDtoRequest::class.java)
-        val nyhetId = UUID.fromString(ctx.req().getHeader("uuid"))
+        val nyhetId = UUID.fromString(ctx.pathParam("uuid"))
         nyheterRepository.lagreNyhet(nyhetDtoRequest.tilNyhet(nyhetId = nyhetId, navIdent = ctx.autentisertNavBruker().hentNavIdent()))
         ctx.status(200)
     }
