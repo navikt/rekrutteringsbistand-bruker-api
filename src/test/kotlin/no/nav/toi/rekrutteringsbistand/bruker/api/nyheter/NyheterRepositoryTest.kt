@@ -35,6 +35,7 @@ class NyheterRepositoryTest : TestRunningApplication() {
             innhold = "Dette er en ny nyhet som informerer om ting",
             opprettetAv = "t1234",
             sistEndretAv = "t1234",
+            status = Status.AKTIV
         )
         val lagretNyhet = nyheterRepository.lagreNyhet(nyhet)
         assertEquals(nyhet.tittel, lagretNyhet.tittel)
@@ -50,6 +51,7 @@ class NyheterRepositoryTest : TestRunningApplication() {
             innhold = "Dette er en ny nyhet som informerer om ting",
             opprettetAv = "t1234",
             sistEndretAv = "t1234",
+            status = Status.AKTIV
         )
         val lagretNyhet = nyheterRepository.lagreNyhet(nyhet)
         if (lagretNyhet.nyhetId != null) {
@@ -66,6 +68,7 @@ class NyheterRepositoryTest : TestRunningApplication() {
                 innhold = "Dette er ny nyhet som informerer om enda flere ting",
                 opprettetAv = "t1234",
                 sistEndretAv = "t5678",
+                status = Status.AKTIV
             )
             val lagretOppdatertNyhet  = nyheterRepository.lagreNyhet(oppdatertNyhet)
             if (lagretOppdatertNyhet.nyhetId != null) {
@@ -89,18 +92,21 @@ class NyheterRepositoryTest : TestRunningApplication() {
             innhold = "Dette er første nyhet som informerer om ting",
             opprettetAv = "t1234",
             sistEndretAv = "t1234",
+            status = Status.AKTIV
         )
         val nyhet2 = Nyhet(
             tittel = "Nyhet 2",
             innhold = "Dette er andre nyhet som informerer om ting",
             opprettetAv = "t1234",
             sistEndretAv = "t1234",
+            status = Status.AKTIV
         )
         val nyhet3 = Nyhet(
             tittel = "Nyhet 3",
             innhold = "Dette er tredje nyhet som informerer om ting",
             opprettetAv = "t1234",
             sistEndretAv = "t1234",
+            status = Status.AKTIV
         )
         nyheterRepository.lagreNyhet(nyhet1)
         nyheterRepository.lagreNyhet(nyhet2)
@@ -120,6 +126,7 @@ class NyheterRepositoryTest : TestRunningApplication() {
             innhold = "Dette er en ny nyhet som informerer om ting",
             opprettetAv = "t1234",
             sistEndretAv = "t1234",
+            status = Status.AKTIV
         )
         val lagretNyhet = nyheterRepository.lagreNyhet(nyhet)
 
@@ -130,6 +137,28 @@ class NyheterRepositoryTest : TestRunningApplication() {
             assertEquals(nyhet.innhold, hentetNyhet.innhold)
             assertEquals(nyhet.opprettetAv, hentetNyhet.opprettetAv)
             assertEquals(nyhet.sistEndretAv, hentetNyhet.sistEndretAv)
+        } else throw NullPointerException("nyhetId ble ikke satt ved lagring, noe er galt")
+    }
+
+    @Test
+    fun `Skal kunne slette en nyhet ved å sette status til SLETTET`() {
+        val nyhet = Nyhet(
+            tittel = "Ny nyhet",
+            innhold = "Dette er en ny nyhet som informerer om ting",
+            opprettetAv = "t1234",
+            sistEndretAv = "t1234",
+            status = Status.AKTIV
+        )
+        val lagretNyhet = nyheterRepository.lagreNyhet(nyhet)
+
+        if (lagretNyhet.nyhetId != null) {
+            val hentetNyhet = nyheterRepository.hentNyhetPåId(lagretNyhet.nyhetId)
+
+            assertEquals(Status.AKTIV, hentetNyhet.status)
+
+            nyheterRepository.slettNyhet(lagretNyhet.nyhetId, "t5678")
+            val hentetSlettetNyhet = nyheterRepository.hentNyhetPåId(lagretNyhet.nyhetId)
+            assertEquals(Status.SLETTET, hentetSlettetNyhet.status)
         } else throw NullPointerException("nyhetId ble ikke satt ved lagring, noe er galt")
     }
 }

@@ -21,7 +21,9 @@ class NyheterController(
 
     private fun hentNyheter(ctx: Context) {
         ctx.autentisertNavBruker().verifiserAutorisasjon(NavAnsattRolle.ARBEIDSGIVER_RETTET, NavAnsattRolle.UTVIKLER)
-        ctx.json(nyheterRepository.hentNyheter().map { nyhet -> nyhet.tilNyhetDtoResponse() })
+        ctx.json(nyheterRepository.hentNyheter()
+            .filter { it.status != Status.SLETTET }
+            .map { nyhet -> nyhet.tilNyhetDtoResponse() })
         ctx.status(200)
     }
 
@@ -38,6 +40,13 @@ class NyheterController(
         val nyhetDtoRequest  = objectMapper.readValue(ctx.body(), NyhetDtoRequest::class.java)
         val nyhetId = UUID.fromString(ctx.pathParam("uuid"))
         nyheterRepository.lagreNyhet(nyhetDtoRequest.tilNyhet(nyhetId = nyhetId, navIdent = ctx.autentisertNavBruker().hentNavIdent()))
+        ctx.status(200)
+    }
+
+    private fun slettNyhet(ctx: Context){
+        ctx.autentisertNavBruker().verifiserAutorisasjon(NavAnsattRolle.UTVIKLER)
+        val nyhetId = UUID.fromString(ctx.pathParam("uuid"))
+        nyheterRepository.slettNyhet(nyhetId, navIdent = ctx.autentisertNavBruker().hentNavIdent())
         ctx.status(200)
     }
 

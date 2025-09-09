@@ -50,3 +50,7 @@ spec:
       value: {{ adGruppeUtvikler }}
     - name: REKRUTTERINGSBISTAND_ARBEIDSGIVERRETTET
       value: {{ adGruppeArbeidsgiverrettet }}
+  accessPolicy:
+    inbound:
+      rules:
+        - application: rekrutteringsbistand-frontend

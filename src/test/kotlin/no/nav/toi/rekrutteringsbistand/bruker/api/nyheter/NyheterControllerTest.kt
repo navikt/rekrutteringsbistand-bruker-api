@@ -44,6 +44,7 @@ class NyheterControllerTest : TestRunningApplication() {
             innhold = "Dette er en ny nyhet som informerer om ting",
             opprettetAv = testIdent,
             sistEndretAv = testIdent,
+            status = Status.AKTIV
         )
         lagretNyhet = nyheterRepository.lagreNyhet(enNyhet)
     }
