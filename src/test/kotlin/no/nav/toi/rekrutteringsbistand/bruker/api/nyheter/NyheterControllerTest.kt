@@ -162,4 +162,38 @@ class NyheterControllerTest : TestRunningApplication() {
         val response = HttpClient.newBuilder().build().send(request, HttpResponse.BodyHandlers.ofString())
         assertThat(response.statusCode()).isEqualTo(200)
     }
+
+    @Test
+    fun `Beskyttet tilgangsrolle uten utvikler-tilgang skal ikke kunne slette nyhet og gir statuskode 403`() {
+        val arbeidsgiverrettetGruppe = appCtx.env["REKRUTTERINGSBISTAND_ARBEIDSGIVERRETTET"]
+        val uuid = lagretNyhet.nyhetId
+
+        val accessToken = appCtx.mockOauth2Server.issueToken("azuread",
+            "testsubject", appCtx.env["AZURE_APP_CLIENT_ID"],
+            mapOf("NAVident" to testIdent, "groups" to listOfNotNull(arbeidsgiverrettetGruppe)))
+
+        val request = HttpRequest.newBuilder()
+            .uri(URI("$lokalUrlBase/api/nyheter/$uuid/slett"))
+            .header("Authorization", "Bearer ${accessToken.serialize()}")
+            .PUT(HttpRequest.BodyPublishers.noBody()).build()
+        val response = HttpClient.newBuilder().build().send(request, HttpResponse.BodyHandlers.ofString())
+        assertThat(response.statusCode()).isEqualTo(403)
+    }
+
+    @Test
+    fun `Beskyttet tilgangsrolle med utvikler-tilgang skal kunne slette nyhet og gir statuskode 200`() {
+        val utviklerGruppe = appCtx.env["REKRUTTERINGSBISTAND_UTVIKLER"]
+        val uuid = lagretNyhet.nyhetId
+
+        val accessToken = appCtx.mockOauth2Server.issueToken("azuread",
+            "testsubject", appCtx.env["AZURE_APP_CLIENT_ID"],
+            mapOf("NAVident" to testIdent, "groups" to listOfNotNull(utviklerGruppe)))
+
+        val request = HttpRequest.newBuilder()
+            .uri(URI("$lokalUrlBase/api/nyheter/$uuid/slett"))
+            .header("Authorization", "Bearer ${accessToken.serialize()}")
+            .PUT(HttpRequest.BodyPublishers.noBody()).build()
+        val response = HttpClient.newBuilder().build().send(request, HttpResponse.BodyHandlers.ofString())
+        assertThat(response.statusCode()).isEqualTo(200)
+    }
 }
