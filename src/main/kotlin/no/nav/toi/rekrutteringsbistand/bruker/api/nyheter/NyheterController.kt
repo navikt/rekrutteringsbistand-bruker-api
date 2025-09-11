@@ -17,7 +17,7 @@ class NyheterController(
         javalin.get("/api/nyheter", { ctx -> hentNyheter(ctx) }, Tilgangsrolle.BESKYTTET)
         javalin.post("/api/nyheter/{uuid}", { ctx -> opprettNyhet(ctx)}, Tilgangsrolle.BESKYTTET)
         javalin.put("/api/nyheter/{uuid}", { ctx -> oppdaterNyhet(ctx)}, Tilgangsrolle.BESKYTTET)
-        javalin.put("/api/nyheter/{uuid}/slett", { ctx -> slettNyhet(ctx)}, Tilgangsrolle.BESKYTTET)
+        javalin.put("/api/nyheter/slett/{uuid}", { ctx -> slettNyhet(ctx)}, Tilgangsrolle.BESKYTTET)
     }
 
     private fun hentNyheter(ctx: Context) {
