@@ -173,7 +173,7 @@ class NyheterControllerTest : TestRunningApplication() {
             mapOf("NAVident" to testIdent, "groups" to listOfNotNull(arbeidsgiverrettetGruppe)))
 
         val request = HttpRequest.newBuilder()
-            .uri(URI("$lokalUrlBase/api/nyheter/$uuid/slett"))
+            .uri(URI("$lokalUrlBase/api/nyheter/slett/$uuid"))
             .header("Authorization", "Bearer ${accessToken.serialize()}")
             .PUT(HttpRequest.BodyPublishers.noBody()).build()
         val response = HttpClient.newBuilder().build().send(request, HttpResponse.BodyHandlers.ofString())
@@ -190,7 +190,7 @@ class NyheterControllerTest : TestRunningApplication() {
             mapOf("NAVident" to testIdent, "groups" to listOfNotNull(utviklerGruppe)))
 
         val request = HttpRequest.newBuilder()
-            .uri(URI("$lokalUrlBase/api/nyheter/$uuid/slett"))
+            .uri(URI("$lokalUrlBase/api/nyheter/slett/$uuid"))
             .header("Authorization", "Bearer ${accessToken.serialize()}")
             .PUT(HttpRequest.BodyPublishers.noBody()).build()
         val response = HttpClient.newBuilder().build().send(request, HttpResponse.BodyHandlers.ofString())
