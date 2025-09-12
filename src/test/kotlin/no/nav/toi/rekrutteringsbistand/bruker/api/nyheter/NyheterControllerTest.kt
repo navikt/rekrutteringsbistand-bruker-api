@@ -78,7 +78,6 @@ class NyheterControllerTest : TestRunningApplication() {
     @Test
     fun `Beskyttet tilgangsrolle uten utvikler-tilgang skal ikke kunne opprette nyhet og gir statuskode 403`() {
         val arbeidsgiverrettetGruppe = appCtx.env["REKRUTTERINGSBISTAND_ARBEIDSGIVERRETTET"]
-        val uuid = null
         val testNyhet = NyhetDtoRequest(
             tittel = "Ny nyhet",
             innhold = "Nytt innhold",
@@ -90,7 +89,7 @@ class NyheterControllerTest : TestRunningApplication() {
             mapOf("NAVident" to testIdent, "groups" to listOfNotNull(arbeidsgiverrettetGruppe)))
 
         val request = HttpRequest.newBuilder()
-            .uri(URI("$lokalUrlBase/api/nyheter/$uuid"))
+            .uri(URI("$lokalUrlBase/api/nyheter"))
             .header("Authorization", "Bearer ${accessToken.serialize()}")
             .POST(HttpRequest.BodyPublishers.ofString(testNyhetJson)).build()
         val response = HttpClient.newBuilder().build().send(request, HttpResponse.BodyHandlers.ofString())
@@ -100,7 +99,6 @@ class NyheterControllerTest : TestRunningApplication() {
     @Test
     fun `Beskyttet tilgangsrolle med utvikler-tilgang skal kunne opprette nyhet og gir statuskode 201`() {
         val utviklerGruppe = appCtx.env["REKRUTTERINGSBISTAND_UTVIKLER"]
-        val uuid = null
         val testNyhet = NyhetDtoRequest(
             tittel = "Ny nyhet",
             innhold = "Nytt innhold",
@@ -112,7 +110,7 @@ class NyheterControllerTest : TestRunningApplication() {
             mapOf("NAVident" to testIdent, "groups" to listOfNotNull(utviklerGruppe)))
 
         val request = HttpRequest.newBuilder()
-            .uri(URI("$lokalUrlBase/api/nyheter/$uuid"))
+            .uri(URI("$lokalUrlBase/api/nyheter"))
             .header("Authorization", "Bearer ${accessToken.serialize()}")
             .POST(HttpRequest.BodyPublishers.ofString(testNyhetJson)).build()
         val response = HttpClient.newBuilder().build().send(request, HttpResponse.BodyHandlers.ofString())
