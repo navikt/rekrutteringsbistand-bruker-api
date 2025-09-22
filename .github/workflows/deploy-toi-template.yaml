@@ -64,7 +64,7 @@ jobs:
         env:
           CLUSTER: prod-gcp
           RESOURCE: .nais/app.yaml
-          VARS: .nais/app-dev.yaml
+          VARS: .nais/app-prod.yaml
           VAR: image=${{ needs.build-and-publish.outputs.image }}
 
   call-trivy-security-scan:
