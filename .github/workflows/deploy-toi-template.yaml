@@ -63,7 +63,7 @@ jobs:
       - uses: nais/deploy/actions/deploy@v2
         env:
           CLUSTER: prod-gcp
-          RESOURCE: .nais/app.yaml
+          RESOURCE: .nais/app.yaml, .nais/alerts.yaml
           VARS: .nais/app-prod.yaml
           VAR: image=${{ needs.build-and-publish.outputs.image }}
 
