@@ -6,6 +6,7 @@ import io.javalin.http.Context
 import no.nav.toi.rekrutteringsbistand.bruker.api.NavAnsattRolle
 import no.nav.toi.rekrutteringsbistand.bruker.api.Tilgangsrolle
 import no.nav.toi.rekrutteringsbistand.bruker.api.autentisertNavBruker
+import no.nav.toi.rekrutteringsbistand.bruker.api.log
 import java.util.UUID
 
 class NyheterController(
@@ -25,6 +26,8 @@ class NyheterController(
             NavAnsattRolle.ARBEIDSGIVER_RETTET,
             NavAnsattRolle.UTVIKLER,
             NavAnsattRolle.JOBBSOKER_RETTET)
+
+        log.info("Henter nyheter")
         ctx.json(nyheterRepository.hentNyheter()
             .filter { it.status != Status.SLETTET }
             .map { nyhet -> nyhet.tilNyhetDtoResponse() })
