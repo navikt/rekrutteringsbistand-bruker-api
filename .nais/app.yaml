@@ -46,6 +46,8 @@ spec:
           - id: {{ adGruppeUtvikler }}
           - id: {{ adGruppeArbeidsgiverrettet }}
           - id: {{ adGruppeRekrutteringsbistandJobbsokerrettet }}
+          - id: {{ adGruppeModiaGenerellTilgang }}
+          - id: {{ adGruppeModiaOppfolging }}
   env:
     - name: REKRUTTERINGSBISTAND_UTVIKLER
       value: {{ adGruppeUtvikler }}
@@ -53,6 +55,10 @@ spec:
       value: {{ adGruppeArbeidsgiverrettet }}
     - name: REKRUTTERINGSBISTAND_JOBBSOKERRETTET
       value: {{ adGruppeRekrutteringsbistandJobbsokerrettet }}
+    - name: REKRUTTERINGSBISTAND_MODIA_GENERELL_TILGANG
+      value: {{ adGruppeModiaGenerellTilgang }}
+    - name: REKRUTTERINGSBISTAND_MODIA_OPPFOLGING
+      value: {{ adGruppeModiaOppfolging }}
   accessPolicy:
     inbound:
       rules:

@@ -26,7 +26,9 @@ fun ApplicationContext.startApp(): Javalin {
         autentiseringskonfigurasjoner = autentiseringskonfigurasjoner,
         arbeidsgiverrettet = arbeidsgiverrettet,
         utvikler = utvikler,
-        jobbsokerrettet = jobbsokerrettet
+        jobbsokerrettet = jobbsokerrettet,
+        modiaOppfolging = modiaOppfolging,
+        modiaGenerellTilgang = modiaGenerell
     )
     setupAllRoutes(javalin)
 
@@ -47,7 +49,9 @@ fun startJavalin(
     autentiseringskonfigurasjoner: List<Autentiseringskonfigurasjon>,
     utvikler: UUID,
     arbeidsgiverrettet: UUID,
-    jobbsokerrettet: UUID
+    jobbsokerrettet: UUID,
+    modiaOppfolging: UUID,
+    modiaGenerellTilgang: UUID
 ): Javalin {
     kjørFlywayMigreringer(dataSource)
     val log = LoggerFactory.getLogger("javalin")
@@ -68,7 +72,13 @@ fun startJavalin(
         tilgangsstyring.manage(ctx = ctx,
             routeRoles = ctx.routeRoles(),
             autentiseringskonfigurasjoner = autentiseringskonfigurasjoner,
-            rolleUuidSpesifikasjon = RolleUuidSpesifikasjon(arbeidsgiverrettet, utvikler, jobbsokerrettet))
+            rolleUuidSpesifikasjon = RolleUuidSpesifikasjon(
+                arbeidsgiverrettet = arbeidsgiverrettet,
+                utvikler = utvikler,
+                jobbsokerrettet = jobbsokerrettet,
+                modiaOppfolging = modiaOppfolging,
+                modiaGenerellTilgang = modiaGenerellTilgang
+            ))
     }.exception(IllegalArgumentException::class.java) { e, ctx ->
         log.info("IllegalArgumentException: ${e.message}", e)
         ctx.status(400).result(e.message ?: "")

@@ -25,7 +25,10 @@ class NyheterController(
         ctx.autentisertNavBruker().verifiserAutorisasjon(
             NavAnsattRolle.ARBEIDSGIVER_RETTET,
             NavAnsattRolle.UTVIKLER,
-            NavAnsattRolle.JOBBSOKER_RETTET)
+            NavAnsattRolle.JOBBSOKER_RETTET,
+            NavAnsattRolle.MODIA_OPPFOLGING,
+            NavAnsattRolle.MODIA_GENERELL_TILGANG
+        )
 
         log.info("Henter nyheter")
         ctx.json(nyheterRepository.hentNyheter()

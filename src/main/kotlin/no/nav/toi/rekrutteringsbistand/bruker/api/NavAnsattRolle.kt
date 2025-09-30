@@ -7,6 +7,8 @@ enum class NavAnsattRolle {
     JOBBSOKER_RETTET,
     ARBEIDSGIVER_RETTET,
     UTVIKLER,
+    MODIA_OPPFOLGING,
+    MODIA_GENERELL_TILGANG
 }
 
 enum class Tilgangsrolle: RouteRole {
@@ -22,12 +24,16 @@ enum class Tilgangsrolle: RouteRole {
 data class RolleUuidSpesifikasjon(
     private val arbeidsgiverrettet: UUID,
     private val utvikler: UUID,
-    private val jobbsokerrettet: UUID
+    private val jobbsokerrettet: UUID,
+    private val modiaOppfolging: UUID,
+    private val modiaGenerellTilgang: UUID
 ) {
     private fun rolleForUuid(uuid: UUID): NavAnsattRolle? = when (uuid) {
         jobbsokerrettet -> NavAnsattRolle.JOBBSOKER_RETTET
         arbeidsgiverrettet -> NavAnsattRolle.ARBEIDSGIVER_RETTET
         utvikler -> NavAnsattRolle.UTVIKLER
+        modiaOppfolging -> NavAnsattRolle.MODIA_OPPFOLGING
+        modiaGenerellTilgang -> NavAnsattRolle.MODIA_GENERELL_TILGANG
         else -> { log.warn("Ukjent rolle-UUID: $uuid"); null }
     }
 

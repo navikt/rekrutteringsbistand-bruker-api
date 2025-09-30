@@ -8,6 +8,8 @@ val env = mutableMapOf(
     "REKRUTTERINGSBISTAND_ARBEIDSGIVERRETTET" to "3b85ba1c-74d6-47c5-a5ae-face7818b212", // tilfeldig generert UUID
     "REKRUTTERINGSBISTAND_UTVIKLER" to "796c475b-44bc-4d6e-81bc-f422765e3be0", // tilfeldig generert UUID
     "REKRUTTERINGSBISTAND_JOBBSOKERRETTET" to "796c475b-44bc-4d6e-81bc-f422765e1234", // tilfeldig generert UUID
+    "REKRUTTERINGSBISTAND_MODIA_OPPFOLGING" to "796c475b-44bc-4d6e-81bc-f422765e1224", // tilfeldig generert UUID
+    "REKRUTTERINGSBISTAND_MODIA_GENERELL_TILGANG" to "796c475b-44bc-4d6e-81bc-f422765e1235", // tilfeldig generert UUID
     "AZURE_APP_CLIENT_ID" to "testClientId",
     "AZURE_OPENID_CONFIG_ISSUER" to "http://localhost:8081/azuread",
     "AZURE_OPENID_CONFIG_JWKS_URI" to "http://localhost:8081/azuread/jwks",

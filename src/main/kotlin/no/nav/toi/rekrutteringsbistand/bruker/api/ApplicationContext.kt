@@ -58,6 +58,8 @@ open class ApplicationContext(envInn: Map<String, String>) {
     val arbeidsgiverrettet = UUID.fromString(getenv("REKRUTTERINGSBISTAND_ARBEIDSGIVERRETTET"))
     val utvikler = UUID.fromString(getenv("REKRUTTERINGSBISTAND_UTVIKLER"))
     val jobbsokerrettet = UUID.fromString(getenv("REKRUTTERINGSBISTAND_JOBBSOKERRETTET"))
+    val modiaOppfolging = UUID.fromString(getenv("REKRUTTERINGSBISTAND_MODIA_OPPFOLGING"))
+    val modiaGenerell = UUID.fromString(getenv("REKRUTTERINGSBISTAND_MODIA_GENERELL_TILGANG"))
 
     val autentiseringskonfigurasjoner = listOfNotNull(
         Autentiseringskonfigurasjon(
