@@ -21,7 +21,10 @@ class NyheterController(
     }
 
     private fun hentNyheter(ctx: Context) {
-        ctx.autentisertNavBruker().verifiserAutorisasjon(NavAnsattRolle.ARBEIDSGIVER_RETTET, NavAnsattRolle.UTVIKLER)
+        ctx.autentisertNavBruker().verifiserAutorisasjon(
+            NavAnsattRolle.ARBEIDSGIVER_RETTET,
+            NavAnsattRolle.UTVIKLER,
+            NavAnsattRolle.JOBBSOKER_RETTET)
         ctx.json(nyheterRepository.hentNyheter()
             .filter { it.status != Status.SLETTET }
             .map { nyhet -> nyhet.tilNyhetDtoResponse() })

@@ -4,6 +4,7 @@ import io.javalin.security.RouteRole
 import java.util.UUID
 
 enum class NavAnsattRolle {
+    JOBBSOKER_RETTET,
     ARBEIDSGIVER_RETTET,
     UTVIKLER,
 }
@@ -21,8 +22,10 @@ enum class Tilgangsrolle: RouteRole {
 data class RolleUuidSpesifikasjon(
     private val arbeidsgiverrettet: UUID,
     private val utvikler: UUID,
+    private val jobbsokerrettet: UUID
 ) {
     private fun rolleForUuid(uuid: UUID): NavAnsattRolle? = when (uuid) {
+        jobbsokerrettet -> NavAnsattRolle.JOBBSOKER_RETTET
         arbeidsgiverrettet -> NavAnsattRolle.ARBEIDSGIVER_RETTET
         utvikler -> NavAnsattRolle.UTVIKLER
         else -> { log.warn("Ukjent rolle-UUID: $uuid"); null }

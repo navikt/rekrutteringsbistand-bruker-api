@@ -6,7 +6,6 @@ import io.javalin.micrometer.MicrometerPlugin
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.flywaydb.core.Flyway
 import org.slf4j.LoggerFactory
-import org.slf4j.MDC
 import java.util.*
 import javax.sql.DataSource
 
@@ -17,8 +16,6 @@ fun main() {
     appContext.startApp()
 }
 
-const val KONSUMENT_ID_MDC_KEY = "konsument_id"
-
 fun ApplicationContext.startApp(): Javalin {
     val javalin = startJavalin(
         port = 8080,
@@ -28,7 +25,8 @@ fun ApplicationContext.startApp(): Javalin {
         tilgangsstyring = tilgangsstyring,
         autentiseringskonfigurasjoner = autentiseringskonfigurasjoner,
         arbeidsgiverrettet = arbeidsgiverrettet,
-        utvikler = utvikler
+        utvikler = utvikler,
+        jobbsokerrettet = jobbsokerrettet
     )
     setupAllRoutes(javalin)
 
@@ -48,7 +46,8 @@ fun startJavalin(
     tilgangsstyring: Tilgangsstyring,
     autentiseringskonfigurasjoner: List<Autentiseringskonfigurasjon>,
     utvikler: UUID,
-    arbeidsgiverrettet: UUID
+    arbeidsgiverrettet: UUID,
+    jobbsokerrettet: UUID
 ): Javalin {
     kjørFlywayMigreringer(dataSource)
     val log = LoggerFactory.getLogger("javalin")
@@ -69,7 +68,7 @@ fun startJavalin(
         tilgangsstyring.manage(ctx = ctx,
             routeRoles = ctx.routeRoles(),
             autentiseringskonfigurasjoner = autentiseringskonfigurasjoner,
-            rolleUuidSpesifikasjon = RolleUuidSpesifikasjon(arbeidsgiverrettet, utvikler))
+            rolleUuidSpesifikasjon = RolleUuidSpesifikasjon(arbeidsgiverrettet, utvikler, jobbsokerrettet))
     }.exception(IllegalArgumentException::class.java) { e, ctx ->
         log.info("IllegalArgumentException: ${e.message}", e)
         ctx.status(400).result(e.message ?: "")

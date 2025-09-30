@@ -45,11 +45,14 @@ spec:
         groups:
           - id: {{ adGruppeUtvikler }}
           - id: {{ adGruppeArbeidsgiverrettet }}
+          - id: {{ adGruppeRekrutteringsbistandJobbsokerrettet }}
   env:
     - name: REKRUTTERINGSBISTAND_UTVIKLER
       value: {{ adGruppeUtvikler }}
     - name: REKRUTTERINGSBISTAND_ARBEIDSGIVERRETTET
       value: {{ adGruppeArbeidsgiverrettet }}
+    - name: REKRUTTERINGSBISTAND_JOBBSOKERRETTET
+      value: {{ adGruppeRekrutteringsbistandJobbsokerrettet }}
   accessPolicy:
     inbound:
       rules:

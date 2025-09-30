@@ -57,6 +57,7 @@ open class ApplicationContext(envInn: Map<String, String>) {
 
     val arbeidsgiverrettet = UUID.fromString(getenv("REKRUTTERINGSBISTAND_ARBEIDSGIVERRETTET"))
     val utvikler = UUID.fromString(getenv("REKRUTTERINGSBISTAND_UTVIKLER"))
+    val jobbsokerrettet = UUID.fromString(getenv("REKRUTTERINGSBISTAND_JOBBSOKERRETTET"))
 
     val autentiseringskonfigurasjoner = listOfNotNull(
         Autentiseringskonfigurasjon(
