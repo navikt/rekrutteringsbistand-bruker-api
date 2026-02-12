@@ -63,3 +63,4 @@ spec:
     inbound:
       rules:
         - application: rekrutteringsbistand-frontend
+        - application: rekrutteringsbistand-frontend2
