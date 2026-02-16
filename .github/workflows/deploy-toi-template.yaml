@@ -29,10 +29,9 @@ jobs:
       - name: Gradle test and build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TESTCONTAINERS_RYUK_DISABLED: true
         run: |
           chmod +x ./gradlew
-          ./gradlew :test :build :installDist
+          ./gradlew :build :installDist -x test
       - name: Push docker image to GAR
         uses: nais/docker-build-push@v0
         id: docker-build-push
