@@ -33,7 +33,7 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
         val tilbakemelding = Tilbakemelding(
             navn = "Test Testesen",
             tilbakemelding = "Dette er en tilbakemelding",
-            kategori = TilbakemeldingKategori.FEIL,
+            kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
             url = "/stillinger",
         )
         val lagret = tilbakemeldingerRepository.opprett(tilbakemelding)
@@ -64,13 +64,13 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
         val t1 = Tilbakemelding(
             navn = "Bruker 1",
             tilbakemelding = "Første tilbakemelding",
-            kategori = TilbakemeldingKategori.FEIL,
+            kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
             url = "/stillinger",
         )
         val t2 = Tilbakemelding(
             navn = "Bruker 2",
             tilbakemelding = "Andre tilbakemelding",
-            kategori = TilbakemeldingKategori.FORSLAG,
+            kategori = TilbakemeldingKategori.STILLINGSOPPDRAG,
             url = "/kandidater",
         )
         tilbakemeldingerRepository.opprett(t1)
@@ -88,19 +88,19 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
         val tilbakemelding = Tilbakemelding(
             navn = "Test",
             tilbakemelding = "En tilbakemelding",
-            kategori = TilbakemeldingKategori.FEIL,
+            kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
             url = "/stillinger",
         )
         val lagret = tilbakemeldingerRepository.opprett(tilbakemelding)
 
         val oppdaterRequest = TilbakemeldingOppdaterRequest(
-            kategori = TilbakemeldingKategori.FORSLAG,
+            kategori = TilbakemeldingKategori.STILLINGSOPPDRAG,
             trelloLenke = "https://trello.com/c/abc123",
             status = TilbakemeldingStatus.VURDERING,
         )
         val oppdatert = tilbakemeldingerRepository.oppdater(lagret.id, oppdaterRequest)
 
-        assertEquals(TilbakemeldingKategori.FORSLAG, oppdatert.kategori)
+        assertEquals(TilbakemeldingKategori.STILLINGSOPPDRAG, oppdatert.kategori)
         assertEquals("https://trello.com/c/abc123", oppdatert.trelloLenke)
         assertEquals(TilbakemeldingStatus.VURDERING, oppdatert.status)
         assertEquals(lagret.tilbakemelding, oppdatert.tilbakemelding)
@@ -112,7 +112,7 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
             Tilbakemelding(
                 navn = "Test",
                 tilbakemelding = "Avvis denne",
-                kategori = TilbakemeldingKategori.ANNET,
+                kategori = TilbakemeldingKategori.ETTERREGISTRERINGER,
                 url = "/test",
             )
         )
@@ -135,7 +135,7 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
             Tilbakemelding(
                 navn = "Test",
                 tilbakemelding = "Fullfør denne",
-                kategori = TilbakemeldingKategori.FORSLAG,
+                kategori = TilbakemeldingKategori.STILLINGSOPPDRAG,
                 url = "/test",
             )
         )
@@ -158,7 +158,7 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
             Tilbakemelding(
                 navn = "Test",
                 tilbakemelding = "Slett denne",
-                kategori = TilbakemeldingKategori.FEIL,
+                kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
                 url = "/stillinger",
             )
         )

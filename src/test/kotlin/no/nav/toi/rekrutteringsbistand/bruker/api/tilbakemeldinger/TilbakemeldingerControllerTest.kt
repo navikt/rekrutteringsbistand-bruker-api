@@ -52,7 +52,7 @@ class TilbakemeldingerControllerTest : TestRunningApplication() {
             Tilbakemelding(
                 navn = "Test Testesen",
                 tilbakemelding = "En test-tilbakemelding",
-                kategori = TilbakemeldingKategori.FEIL,
+                kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
                 url = "/stillinger",
             )
         )
@@ -102,7 +102,7 @@ class TilbakemeldingerControllerTest : TestRunningApplication() {
         val opprettRequest = TilbakemeldingOpprettRequest(
             navn = "Test Testesen",
             tilbakemelding = "Dette fungerer ikke",
-            kategori = TilbakemeldingKategori.FEIL,
+            kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
             url = "/stillinger",
         )
         val json = objectMapper.writeValueAsString(opprettRequest)
@@ -124,7 +124,7 @@ class TilbakemeldingerControllerTest : TestRunningApplication() {
         val opprettRequest = TilbakemeldingOpprettRequest(
             navn = "Test",
             tilbakemelding = "Test",
-            kategori = TilbakemeldingKategori.FEIL,
+            kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
             url = "/test",
         )
         val json = objectMapper.writeValueAsString(opprettRequest)
@@ -141,7 +141,7 @@ class TilbakemeldingerControllerTest : TestRunningApplication() {
         val lagret = lagTestTilbakemelding()
         val arbeidsgiverrettetGruppe = appCtx.env["REKRUTTERINGSBISTAND_ARBEIDSGIVERRETTET"]
         val oppdaterRequest = TilbakemeldingOppdaterRequest(
-            kategori = TilbakemeldingKategori.FORSLAG,
+            kategori = TilbakemeldingKategori.STILLINGSOPPDRAG,
             trelloLenke = "https://trello.com/c/abc",
             status = TilbakemeldingStatus.VURDERING,
         )
@@ -164,7 +164,7 @@ class TilbakemeldingerControllerTest : TestRunningApplication() {
         val lagret = lagTestTilbakemelding()
         val utviklerGruppe = appCtx.env["REKRUTTERINGSBISTAND_UTVIKLER"]
         val oppdaterRequest = TilbakemeldingOppdaterRequest(
-            kategori = TilbakemeldingKategori.FORSLAG,
+            kategori = TilbakemeldingKategori.STILLINGSOPPDRAG,
             trelloLenke = "https://trello.com/c/abc",
             status = TilbakemeldingStatus.VURDERING,
         )

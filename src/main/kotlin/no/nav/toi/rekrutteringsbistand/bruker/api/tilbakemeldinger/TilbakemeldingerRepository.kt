@@ -35,7 +35,7 @@ class TilbakemeldingerRepository(private val dataSource: DataSource) {
                 ps.setTimestamp(4, Timestamp.from(LocalDateTime.now().atZone(ZoneId.of("Europe/Oslo")).toInstant()))
                 ps.setString(5, tilbakemelding.status.name)
                 ps.setString(6, tilbakemelding.trelloLenke)
-                ps.setString(7, tilbakemelding.kategori.name)
+                ps.setString(7, tilbakemelding.kategori.verdi)
                 ps.setString(8, tilbakemelding.url)
                 ps.executeQuery().use { rs ->
                     if (rs.next()) rs.toTilbakemelding() else error("Opprettelse av tilbakemelding feilet")
@@ -73,7 +73,7 @@ class TilbakemeldingerRepository(private val dataSource: DataSource) {
                 RETURNING $COL_ID, $COL_NAVN, $COL_TILBAKEMELDING, $COL_DATO, $COL_STATUS, $COL_TRELLO_LENKE, $COL_KATEGORI, $COL_URL;
                 """.trimIndent()
             ).use { ps ->
-                ps.setString(1, request.kategori.name)
+                ps.setString(1, request.kategori.verdi)
                 ps.setString(2, request.trelloLenke)
                 ps.setString(3, request.status.name)
                 ps.setObject(4, id)
@@ -103,7 +103,7 @@ class TilbakemeldingerRepository(private val dataSource: DataSource) {
             dato = getTimestamp(COL_DATO).toLocalDateTime(),
             status = TilbakemeldingStatus.valueOf(getString(COL_STATUS)),
             trelloLenke = getString(COL_TRELLO_LENKE),
-            kategori = TilbakemeldingKategori.valueOf(getString(COL_KATEGORI)),
+            kategori = TilbakemeldingKategori.fraVerdi(getString(COL_KATEGORI)),
             url = getString(COL_URL),
         )
 }
