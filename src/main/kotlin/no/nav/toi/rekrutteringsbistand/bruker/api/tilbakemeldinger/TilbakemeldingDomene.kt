@@ -46,6 +46,13 @@ data class TilbakemeldingResponse(
     val url: String?,
 )
 
+data class TilbakemeldingerPageResponse(
+    val tilbakemeldinger: List<TilbakemeldingResponse>,
+    val side: Int,
+    val totalSider: Int,
+    val totaltAntall: Int,
+)
+
 fun Tilbakemelding.tilResponse() = TilbakemeldingResponse(
     id = id,
     navn = navn,

@@ -24,8 +24,17 @@ class TilbakemeldingerController(
     private fun hentTilbakemeldinger(ctx: Context) {
         ctx.autentisertNavBruker().verifiserAutorisasjon(NavAnsattRolle.UTVIKLER)
 
-        log.info("Henter tilbakemeldinger")
-        ctx.json(tilbakemeldingerRepository.hentAlle().map { it.tilResponse() })
+        val side = ctx.queryParam("side")?.toIntOrNull()?.coerceAtLeast(1) ?: 1
+        val (tilbakemeldinger, totalt) = tilbakemeldingerRepository.hentSide(side)
+        val totalSider = if (totalt == 0) 1 else (totalt + 24) / 25
+
+        log.info("Henter tilbakemeldinger side $side av $totalSider")
+        ctx.json(TilbakemeldingerPageResponse(
+            tilbakemeldinger = tilbakemeldinger.map { it.tilResponse() },
+            side = side,
+            totalSider = totalSider,
+            totaltAntall = totalt,
+        ))
         ctx.status(200)
     }
 

@@ -43,24 +43,31 @@ class TilbakemeldingerRepository(private val dataSource: DataSource) {
             }
         }
 
-    fun hentAlle(): List<Tilbakemelding> {
-        val liste = mutableListOf<Tilbakemelding>()
-        dataSource.connection.use { c ->
+    fun hentSide(side: Int, antallPerSide: Int = 25): Pair<List<Tilbakemelding>, Int> {
+        val offset = (side - 1) * antallPerSide
+        return dataSource.connection.use { c ->
+            val totalt = c.prepareStatement("SELECT COUNT(*) FROM $TABLE").use { ps ->
+                ps.executeQuery().use { rs -> if (rs.next()) rs.getInt(1) else 0 }
+            }
+            val liste = mutableListOf<Tilbakemelding>()
             c.prepareStatement(
                 """
                 SELECT $COL_ID, $COL_NAVN, $COL_TILBAKEMELDING, $COL_DATO, $COL_STATUS, $COL_TRELLO_LENKE, $COL_KATEGORI, $COL_URL
                 FROM $TABLE
                 ORDER BY $COL_DATO DESC
+                LIMIT ? OFFSET ?
                 """.trimIndent()
             ).use { ps ->
+                ps.setInt(1, antallPerSide)
+                ps.setInt(2, offset)
                 ps.executeQuery().use { rs ->
                     while (rs.next()) {
                         liste.add(rs.toTilbakemelding())
                     }
                 }
             }
+            liste to totalt
         }
-        return liste
     }
 
     fun oppdater(id: UUID, request: TilbakemeldingOppdaterRequest): Tilbakemelding =
