@@ -7,7 +7,7 @@ jobs:
     uses: ./.github/workflows/deploy-toi-template.yaml
     with:
       app_name: ${{ github.workflow }}
-      deploy_dev_branch: refs/heads/ny-app
+      deploy_dev_branch: refs/heads/tilbakemeldinger
     secrets: inherit
     permissions:
       contents: read

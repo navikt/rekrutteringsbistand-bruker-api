@@ -19,6 +19,8 @@ import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.NyheterController
 import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.NyheterRepository
+import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.TilbakemeldingerController
+import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.TilbakemeldingerRepository
 import java.util.*
 import javax.sql.DataSource
 
@@ -52,6 +54,9 @@ open class ApplicationContext(envInn: Map<String, String>) {
     val naisController = NaisController(prometheusRegistry)
 
     val nyheterController = NyheterController(objectMapper, nyheterRepository)
+
+    val tilbakemeldingerRepository = TilbakemeldingerRepository(dataSource)
+    val tilbakemeldingerController = TilbakemeldingerController(objectMapper, tilbakemeldingerRepository)
 
     val tilgangsstyring = Tilgangsstyring()
 
