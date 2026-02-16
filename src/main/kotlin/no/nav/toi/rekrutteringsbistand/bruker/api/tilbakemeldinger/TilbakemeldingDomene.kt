@@ -44,7 +44,9 @@ data class TilbakemeldingResponse(
     val trelloLenke: String?,
     val kategori: TilbakemeldingKategori,
     val url: String?,
-)() = TilbakemeldingResponse(
+)
+
+fun Tilbakemelding.tilResponse() = TilbakemeldingResponse(
     id = id,
     navn = navn,
     tilbakemelding = tilbakemelding,
