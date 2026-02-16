@@ -11,14 +11,14 @@ data class Tilbakemelding(
     val status: TilbakemeldingStatus = TilbakemeldingStatus.NY,
     val trelloLenke: String? = null,
     val kategori: TilbakemeldingKategori,
-    val url: String,
+    val url: String? = null,
 )
 
 data class TilbakemeldingOpprettRequest(
-    val navn: String?,
+    val navn: String? = null,
     val tilbakemelding: String,
     val kategori: TilbakemeldingKategori,
-    val url: String,
+    val url: String? = null,
 ) {
     fun tilTilbakemelding(): Tilbakemelding = Tilbakemelding(
         navn = navn,
@@ -43,10 +43,8 @@ data class TilbakemeldingResponse(
     val status: TilbakemeldingStatus,
     val trelloLenke: String?,
     val kategori: TilbakemeldingKategori,
-    val url: String,
-)
-
-fun Tilbakemelding.tilResponse() = TilbakemeldingResponse(
+    val url: String?,
+)() = TilbakemeldingResponse(
     id = id,
     navn = navn,
     tilbakemelding = tilbakemelding,
