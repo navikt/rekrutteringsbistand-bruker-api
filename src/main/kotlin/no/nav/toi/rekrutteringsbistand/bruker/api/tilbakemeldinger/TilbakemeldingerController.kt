@@ -29,7 +29,8 @@ class TilbakemeldingerController(
         val (tilbakemeldinger, totalt) = tilbakemeldingerRepository.hentSide(side, visAlle = visAlle)
         val totalSider = if (totalt == 0) 1 else (totalt + 24) / 25
 
-        log.info("Henter tilbakemeldinger side $side av $totalSider")
+        log.info("Henter tilbakemeldinger side $side av $totalSider, visAlle=$visAlle (raw query param: '${ctx.queryParam("visAlle")}')")
+        
         ctx.json(TilbakemeldingerPageResponse(
             tilbakemeldinger = tilbakemeldinger.map { it.tilResponse() },
             side = side,
