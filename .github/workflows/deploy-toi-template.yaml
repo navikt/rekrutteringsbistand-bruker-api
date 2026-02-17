@@ -31,7 +31,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod +x ./gradlew
-          ./gradlew :build :installDist -x test
+          ./gradlew :build :installDist
       - name: Push docker image to GAR
         uses: nais/docker-build-push@v0
         id: docker-build-push
