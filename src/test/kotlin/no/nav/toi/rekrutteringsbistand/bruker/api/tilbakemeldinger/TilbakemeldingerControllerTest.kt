@@ -53,7 +53,6 @@ class TilbakemeldingerControllerTest : TestRunningApplication() {
                 navn = "Test Testesen",
                 tilbakemelding = "En test-tilbakemelding",
                 kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
-                url = "/stillinger",
             )
         )
 
@@ -103,7 +102,6 @@ class TilbakemeldingerControllerTest : TestRunningApplication() {
             navn = "Test Testesen",
             tilbakemelding = "Dette fungerer ikke",
             kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
-            url = "/stillinger",
         )
         val json = objectMapper.writeValueAsString(opprettRequest)
 
@@ -125,7 +123,6 @@ class TilbakemeldingerControllerTest : TestRunningApplication() {
             navn = "Test",
             tilbakemelding = "Test",
             kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
-            url = "/test",
         )
         val json = objectMapper.writeValueAsString(opprettRequest)
 

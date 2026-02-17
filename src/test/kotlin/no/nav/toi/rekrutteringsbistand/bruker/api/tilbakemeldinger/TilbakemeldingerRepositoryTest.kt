@@ -34,14 +34,12 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
             navn = "Test Testesen",
             tilbakemelding = "Dette er en tilbakemelding",
             kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
-            url = "/stillinger",
         )
         val lagret = tilbakemeldingerRepository.opprett(tilbakemelding)
 
         assertEquals(tilbakemelding.navn, lagret.navn)
         assertEquals(tilbakemelding.tilbakemelding, lagret.tilbakemelding)
         assertEquals(tilbakemelding.kategori, lagret.kategori)
-        assertEquals(tilbakemelding.url, lagret.url)
         assertEquals(TilbakemeldingStatus.NY, lagret.status)
     }
 
@@ -51,7 +49,6 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
             navn = null,
             tilbakemelding = "Anonym tilbakemelding",
             kategori = TilbakemeldingKategori.ANNET,
-            url = "/kandidater",
         )
         val lagret = tilbakemeldingerRepository.opprett(tilbakemelding)
 
@@ -65,13 +62,11 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
             navn = "Bruker 1",
             tilbakemelding = "Første tilbakemelding",
             kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
-            url = "/stillinger",
         )
         val t2 = Tilbakemelding(
             navn = "Bruker 2",
             tilbakemelding = "Andre tilbakemelding",
             kategori = TilbakemeldingKategori.STILLINGSOPPDRAG,
-            url = "/kandidater",
         )
         tilbakemeldingerRepository.opprett(t1)
         tilbakemeldingerRepository.opprett(t2)
@@ -92,7 +87,6 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
                     navn = "Bruker $i",
                     tilbakemelding = "Tilbakemelding $i",
                     kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
-                    url = "/test",
                 )
             )
         }
@@ -107,12 +101,35 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
     }
 
     @Test
+    fun `Skal filtrere bort avviste og fullforte tilbakemeldinger naar visAlle er false`() {
+        val ny = tilbakemeldingerRepository.opprett(
+            Tilbakemelding(navn = "A", tilbakemelding = "Ny", kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF)
+        )
+        val avvist = tilbakemeldingerRepository.opprett(
+            Tilbakemelding(navn = "B", tilbakemelding = "Avvist", kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF)
+        )
+        val fullfort = tilbakemeldingerRepository.opprett(
+            Tilbakemelding(navn = "C", tilbakemelding = "Fullført", kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF)
+        )
+        tilbakemeldingerRepository.oppdater(avvist.id, TilbakemeldingOppdaterRequest(avvist.kategori, null, TilbakemeldingStatus.AVVIST))
+        tilbakemeldingerRepository.oppdater(fullfort.id, TilbakemeldingOppdaterRequest(fullfort.kategori, null, TilbakemeldingStatus.FULLFORT))
+
+        val (filtrert, filtrertTotalt) = tilbakemeldingerRepository.hentSide(1, visAlle = false)
+        assertEquals(1, filtrertTotalt)
+        assertEquals(1, filtrert.size)
+        assertEquals(ny.id, filtrert[0].id)
+
+        val (alle, alleTotalt) = tilbakemeldingerRepository.hentSide(1, visAlle = true)
+        assertEquals(3, alleTotalt)
+        assertEquals(3, alle.size)
+    }
+
+    @Test
     fun `Skal kunne oppdatere kategori, trelloLenke og status`() {
         val tilbakemelding = Tilbakemelding(
             navn = "Test",
             tilbakemelding = "En tilbakemelding",
             kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
-            url = "/stillinger",
         )
         val lagret = tilbakemeldingerRepository.opprett(tilbakemelding)
 
@@ -136,7 +153,6 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
                 navn = "Test",
                 tilbakemelding = "Avvis denne",
                 kategori = TilbakemeldingKategori.ETTERREGISTRERINGER,
-                url = "/test",
             )
         )
 
@@ -159,7 +175,6 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
                 navn = "Test",
                 tilbakemelding = "Fullfør denne",
                 kategori = TilbakemeldingKategori.STILLINGSOPPDRAG,
-                url = "/test",
             )
         )
 
@@ -182,7 +197,6 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
                 navn = "Test",
                 tilbakemelding = "Slett denne",
                 kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
-                url = "/stillinger",
             )
         )
 

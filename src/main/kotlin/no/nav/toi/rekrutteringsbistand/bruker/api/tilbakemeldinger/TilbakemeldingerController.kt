@@ -25,7 +25,8 @@ class TilbakemeldingerController(
         ctx.autentisertNavBruker().verifiserAutorisasjon(NavAnsattRolle.UTVIKLER)
 
         val side = ctx.queryParam("side")?.toIntOrNull()?.coerceAtLeast(1) ?: 1
-        val (tilbakemeldinger, totalt) = tilbakemeldingerRepository.hentSide(side)
+        val visAlle = ctx.queryParam("visAlle")?.toBooleanStrictOrNull() ?: false
+        val (tilbakemeldinger, totalt) = tilbakemeldingerRepository.hentSide(side, visAlle = visAlle)
         val totalSider = if (totalt == 0) 1 else (totalt + 24) / 25
 
         log.info("Henter tilbakemeldinger side $side av $totalSider")
