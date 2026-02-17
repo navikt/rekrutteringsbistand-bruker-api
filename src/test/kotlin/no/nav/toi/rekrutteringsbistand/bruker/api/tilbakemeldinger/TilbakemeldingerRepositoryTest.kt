@@ -50,7 +50,7 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
         val tilbakemelding = Tilbakemelding(
             navn = null,
             tilbakemelding = "Anonym tilbakemelding",
-            kategori = TilbakemeldingKategori.FORSLAG,
+            kategori = TilbakemeldingKategori.ANNET,
             url = "/kandidater",
         )
         val lagret = tilbakemeldingerRepository.opprett(tilbakemelding)
@@ -60,7 +60,7 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
     }
 
     @Test
-    fun `Skal kunne hente alle tilbakemeldinger`() {
+    fun `Skal kunne hente tilbakemeldinger med paginering`() {
         val t1 = Tilbakemelding(
             navn = "Bruker 1",
             tilbakemelding = "Første tilbakemelding",
@@ -76,11 +76,34 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
         tilbakemeldingerRepository.opprett(t1)
         tilbakemeldingerRepository.opprett(t2)
 
-        val alle = tilbakemeldingerRepository.hentAlle()
+        val (side1, totalt) = tilbakemeldingerRepository.hentSide(1, 25)
 
-        assertEquals(2, alle.size)
-        assertTrue(alle.any { it.tilbakemelding == t1.tilbakemelding })
-        assertTrue(alle.any { it.tilbakemelding == t2.tilbakemelding })
+        assertEquals(2, totalt)
+        assertEquals(2, side1.size)
+        assertTrue(side1.any { it.tilbakemelding == t1.tilbakemelding })
+        assertTrue(side1.any { it.tilbakemelding == t2.tilbakemelding })
+    }
+
+    @Test
+    fun `Skal returnere riktig side ved paginering`() {
+        repeat(3) { i ->
+            tilbakemeldingerRepository.opprett(
+                Tilbakemelding(
+                    navn = "Bruker $i",
+                    tilbakemelding = "Tilbakemelding $i",
+                    kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
+                    url = "/test",
+                )
+            )
+        }
+
+        val (side1, totalt1) = tilbakemeldingerRepository.hentSide(1, 2)
+        val (side2, totalt2) = tilbakemeldingerRepository.hentSide(2, 2)
+
+        assertEquals(3, totalt1)
+        assertEquals(2, side1.size)
+        assertEquals(3, totalt2)
+        assertEquals(1, side2.size)
     }
 
     @Test
@@ -165,7 +188,7 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
 
         tilbakemeldingerRepository.slett(lagret.id)
 
-        val alle = tilbakemeldingerRepository.hentAlle()
-        assertTrue(alle.none { it.id == lagret.id })
+        val (tilbakemeldinger, _) = tilbakemeldingerRepository.hentSide(1)
+        assertTrue(tilbakemeldinger.none { it.id == lagret.id })
     }
 }
