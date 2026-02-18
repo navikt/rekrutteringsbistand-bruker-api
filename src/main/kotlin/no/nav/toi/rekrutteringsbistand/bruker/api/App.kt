@@ -38,6 +38,7 @@ fun ApplicationContext.startApp(): Javalin {
 private fun ApplicationContext.setupAllRoutes(javalin: Javalin) {
     naisController.setupRoutes(javalin)
     nyheterController.setupRoutes(javalin)
+    tilbakemeldingerController.setupRoutes(javalin)
 }
 
 fun startJavalin(

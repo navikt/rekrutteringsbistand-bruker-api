@@ -1,0 +1,1 @@
+ALTER TABLE tilbakemeldinger ALTER COLUMN url DROP NOT NULL;
