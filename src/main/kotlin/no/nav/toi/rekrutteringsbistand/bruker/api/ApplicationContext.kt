@@ -1,6 +1,5 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api
 
-
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -24,12 +23,10 @@ import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.Tilbakemeldin
 import java.util.*
 import javax.sql.DataSource
 
-
-
 @Suppress("MemberVisibilityCanBePrivate")
 open class ApplicationContext(envInn: Map<String, String>) {
 
-    val env: Map<String, String> by lazy {envInn}
+    val env: Map<String, String> by lazy { envInn }
 
     val dataSource = createDataSource()
 

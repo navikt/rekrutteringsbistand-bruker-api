@@ -16,7 +16,7 @@ repositories {
 }
 
 val jacksonVersion = "2.19.2"
-val javalinVersion = "6.7.0"
+val javalinVersion = "7.2.0"
 val micrometerVersion = "1.15.2"
 val flywayVersion = "11.11.2"
 val testContainerVersion = "1.21.4"

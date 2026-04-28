@@ -30,18 +30,17 @@ fun ApplicationContext.startApp(): Javalin {
         modiaOppfolging = modiaOppfolging,
         modiaGenerellTilgang = modiaGenerell
     )
-    setupAllRoutes(javalin)
 
     return javalin
 }
 
-private fun ApplicationContext.setupAllRoutes(javalin: Javalin) {
-    naisController.setupRoutes(javalin)
-    nyheterController.setupRoutes(javalin)
-    tilbakemeldingerController.setupRoutes(javalin)
+private fun ApplicationContext.setupAllRoutes() {
+    naisController.setupRoutes()
+    nyheterController.setupRoutes()
+    tilbakemeldingerController.setupRoutes()
 }
 
-fun startJavalin(
+fun ApplicationContext.startJavalin(
     port: Int = 8080,
     jsonMapper: JavalinJackson,
     meterRegistry: PrometheusMeterRegistry,
@@ -59,33 +58,36 @@ fun startJavalin(
     val micrometerPlugin = MicrometerPlugin { micrometerConfig ->
         micrometerConfig.registry = meterRegistry
     }
-        return Javalin.create {
+    return Javalin.create {
         it.router.ignoreTrailingSlashes = true
         it.router.treatMultipleSlashesAsSingleSlash = true
         it.http.defaultContentType = "application/json"
         it.jsonMapper(jsonMapper)
         it.registerPlugin(micrometerPlugin)
-
-    }.beforeMatched { ctx ->
-        if(ctx.routeRoles().isEmpty()) {
-            return@beforeMatched
+        it.routes.apiBuilder { setupAllRoutes() }
+        it.routes.beforeMatched { ctx ->
+            if (ctx.routeRoles().isEmpty()) {
+                return@beforeMatched
+            }
+            tilgangsstyring.manage(
+                ctx = ctx,
+                routeRoles = ctx.routeRoles(),
+                autentiseringskonfigurasjoner = autentiseringskonfigurasjoner,
+                rolleUuidSpesifikasjon = RolleUuidSpesifikasjon(
+                    arbeidsgiverrettet = arbeidsgiverrettet,
+                    utvikler = utvikler,
+                    jobbsokerrettet = jobbsokerrettet,
+                    modiaOppfolging = modiaOppfolging,
+                    modiaGenerellTilgang = modiaGenerellTilgang
+                )
+            )
+        }.exception(IllegalArgumentException::class.java) { e, ctx ->
+            log.info("IllegalArgumentException: ${e.message}", e)
+            ctx.status(400).result(e.message ?: "")
+        }.exception(Exception::class.java) { e, ctx ->
+            log.info("Exception: ${e.message}", e)
+            ctx.status(500).result(e.message ?: "")
         }
-        tilgangsstyring.manage(ctx = ctx,
-            routeRoles = ctx.routeRoles(),
-            autentiseringskonfigurasjoner = autentiseringskonfigurasjoner,
-            rolleUuidSpesifikasjon = RolleUuidSpesifikasjon(
-                arbeidsgiverrettet = arbeidsgiverrettet,
-                utvikler = utvikler,
-                jobbsokerrettet = jobbsokerrettet,
-                modiaOppfolging = modiaOppfolging,
-                modiaGenerellTilgang = modiaGenerellTilgang
-            ))
-    }.exception(IllegalArgumentException::class.java) { e, ctx ->
-        log.info("IllegalArgumentException: ${e.message}", e)
-        ctx.status(400).result(e.message ?: "")
-    }.exception(Exception::class.java) { e, ctx ->
-        log.info("Exception: ${e.message}", e)
-        ctx.status(500).result(e.message ?: "")
     }.start(port)
 }
 

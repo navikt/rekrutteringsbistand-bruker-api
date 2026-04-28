@@ -1,7 +1,9 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.nyheter
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import io.javalin.Javalin
+import io.javalin.apibuilder.ApiBuilder.get
+import io.javalin.apibuilder.ApiBuilder.post
+import io.javalin.apibuilder.ApiBuilder.put
 import io.javalin.http.Context
 import no.nav.toi.rekrutteringsbistand.bruker.api.NavAnsattRolle
 import no.nav.toi.rekrutteringsbistand.bruker.api.Tilgangsrolle
@@ -14,11 +16,11 @@ class NyheterController(
     private val nyheterRepository: NyheterRepository
     ) {
 
-    fun setupRoutes(javalin: Javalin) {
-        javalin.get("/api/nyheter", { ctx -> hentNyheter(ctx) }, Tilgangsrolle.BESKYTTET)
-        javalin.post("/api/nyheter", { ctx -> opprettNyhet(ctx)}, Tilgangsrolle.BESKYTTET)
-        javalin.put("/api/nyheter/{uuid}", { ctx -> oppdaterNyhet(ctx)}, Tilgangsrolle.BESKYTTET)
-        javalin.put("/api/nyheter/slett/{uuid}", { ctx -> slettNyhet(ctx)}, Tilgangsrolle.BESKYTTET)
+    fun setupRoutes() {
+        get("/api/nyheter", { ctx -> hentNyheter(ctx) }, Tilgangsrolle.BESKYTTET)
+        post("/api/nyheter", { ctx -> opprettNyhet(ctx)}, Tilgangsrolle.BESKYTTET)
+        put("/api/nyheter/{uuid}", { ctx -> oppdaterNyhet(ctx)}, Tilgangsrolle.BESKYTTET)
+        put("/api/nyheter/slett/{uuid}", { ctx -> slettNyhet(ctx)}, Tilgangsrolle.BESKYTTET)
     }
 
     private fun hentNyheter(ctx: Context) {
