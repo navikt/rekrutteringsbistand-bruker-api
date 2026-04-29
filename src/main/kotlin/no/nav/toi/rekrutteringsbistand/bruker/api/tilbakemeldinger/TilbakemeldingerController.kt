@@ -1,7 +1,10 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import io.javalin.Javalin
+import io.javalin.apibuilder.ApiBuilder.delete
+import io.javalin.apibuilder.ApiBuilder.get
+import io.javalin.apibuilder.ApiBuilder.post
+import io.javalin.apibuilder.ApiBuilder.put
 import io.javalin.http.Context
 import no.nav.toi.rekrutteringsbistand.bruker.api.NavAnsattRolle
 import no.nav.toi.rekrutteringsbistand.bruker.api.Tilgangsrolle
@@ -14,11 +17,11 @@ class TilbakemeldingerController(
     private val tilbakemeldingerRepository: TilbakemeldingerRepository
 ) {
 
-    fun setupRoutes(javalin: Javalin) {
-        javalin.get("/api/tilbakemeldinger", { ctx -> hentTilbakemeldinger(ctx) }, Tilgangsrolle.BESKYTTET)
-        javalin.post("/api/tilbakemeldinger", { ctx -> opprettTilbakemelding(ctx) }, Tilgangsrolle.BESKYTTET)
-        javalin.put("/api/tilbakemeldinger/{uuid}", { ctx -> oppdaterTilbakemelding(ctx) }, Tilgangsrolle.BESKYTTET)
-        javalin.delete("/api/tilbakemeldinger/{uuid}", { ctx -> slettTilbakemelding(ctx) }, Tilgangsrolle.BESKYTTET)
+    fun setupRoutes() {
+        get("/api/tilbakemeldinger", { ctx -> hentTilbakemeldinger(ctx) }, Tilgangsrolle.BESKYTTET)
+        post("/api/tilbakemeldinger", { ctx -> opprettTilbakemelding(ctx) }, Tilgangsrolle.BESKYTTET)
+        put("/api/tilbakemeldinger/{uuid}", { ctx -> oppdaterTilbakemelding(ctx) }, Tilgangsrolle.BESKYTTET)
+        delete("/api/tilbakemeldinger/{uuid}", { ctx -> slettTilbakemelding(ctx) }, Tilgangsrolle.BESKYTTET)
     }
 
     private fun hentTilbakemeldinger(ctx: Context) {
