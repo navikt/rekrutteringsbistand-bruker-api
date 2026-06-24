@@ -5,7 +5,7 @@ jobs:
   call-build-and-deploy:
     uses: navikt/toi-github-actions-workflows/.github/workflows/build-and-deploy.yaml@v15
     with:
-      java-version: '21'
+      java-version: '25'
       deploy-to-dev-if-branch-name-is: 'bruk-felles-workflow'
     permissions:
       contents: read
