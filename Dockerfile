@@ -1,14 +1,13 @@
-FROM gcr.io/distroless/java21:nonroot
-ARG APP_NAME
-WORKDIR /$APP_NAME
+FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jre:openjdk-21
+ADD build/distributions/app.tar /
 
 # Asume that logback.xml is located in the project/app root dir.
 # The unconventional location is a signal to developers to make them aware that we use this file in an unconventional
 # way in the ENTRYPOINT command in this Dockerfile.
-# COPY logback.xml /
+COPY logback.xml /
 
 # Copy the prebuilt distribution (run: ./gradlew clean installDist)
-COPY build/install/*/lib /app/lib
+# COPY build/install/*/lib /app/lib
 
 # Set logback.xml explicitly and with an absolute path, to avoid accidentally using any logback.xml bundled in the JAR-files of the app's dependencies
 # Run without the shell script (since we dont have a shell)
