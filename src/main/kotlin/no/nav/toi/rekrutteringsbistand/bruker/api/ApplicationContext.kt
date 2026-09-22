@@ -20,6 +20,8 @@ import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.NyheterController
 import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.NyheterRepository
 import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.TilbakemeldingerController
 import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.TilbakemeldingerRepository
+import no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger.BrukerinnstillingerController
+import no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger.BrukerinnstillingerRepository
 import java.util.*
 import javax.sql.DataSource
 
@@ -54,6 +56,9 @@ open class ApplicationContext(envInn: Map<String, String>) {
 
     val tilbakemeldingerRepository = TilbakemeldingerRepository(dataSource)
     val tilbakemeldingerController = TilbakemeldingerController(objectMapper, tilbakemeldingerRepository)
+
+    val brukerinnstillingerRepository = BrukerinnstillingerRepository(dataSource)
+    val brukerinnstillingerController = BrukerinnstillingerController(objectMapper, brukerinnstillingerRepository)
 
     val tilgangsstyring = Tilgangsstyring()
 
