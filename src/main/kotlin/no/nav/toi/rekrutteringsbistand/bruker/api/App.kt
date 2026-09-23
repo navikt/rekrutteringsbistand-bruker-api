@@ -38,6 +38,7 @@ private fun ApplicationContext.setupAllRoutes() {
     naisController.setupRoutes()
     nyheterController.setupRoutes()
     tilbakemeldingerController.setupRoutes()
+    brukerinnstillingerController.setupRoutes()
 }
 
 fun ApplicationContext.startJavalin(

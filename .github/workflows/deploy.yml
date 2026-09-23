@@ -1,12 +1,12 @@
 name: Build and deploy
-on: [ push, workflow_dispatch ]
+on: [push, workflow_dispatch]
 
 jobs:
   call-build-and-deploy:
     uses: navikt/toi-github-actions-workflows/.github/workflows/build-and-deploy.yaml@v15
     with:
       java-version: '25'
-      deploy-to-dev-if-branch-name-is: 'bruk-felles-workflow'
+      deploy-to-dev-if-branch-name-is: 'brukerinstillinger-api'
     permissions:
       contents: read
       id-token: write
