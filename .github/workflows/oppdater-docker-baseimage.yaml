@@ -1,0 +1,18 @@
+name: Oppdater Docker baseimage
+on:
+  schedule:
+    - cron: '40 5 * * 1'
+  workflow_dispatch:
+
+jobs:
+  call-oppdater-docker-baseimage:
+    uses: navikt/toi-github-actions-workflows/.github/workflows/oppdater-docker-baseimage.yaml@autobump-docker-baseimage
+    with:
+        deploy-workflow-filnavn: deploy.yml
+    permissions: # TODO Are: Undersøk hva som er minste nødvendige permissions
+      id-token: write
+      security-events: write
+    secrets: inherit
+#      actions: write
+#      contents: read
+#      id-token: write
