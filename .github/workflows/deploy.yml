@@ -7,6 +7,7 @@ jobs:
     with:
       java-version: '25'
       deploy-to-dev-if-branch-name-is: 'brukerinstillinger-api'
+      docker-baseimage: europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jre:openjdk-25
     permissions:
       contents: read
       id-token: write
