@@ -3,7 +3,7 @@ on: [push, workflow_dispatch]
 
 jobs:
   call-build-and-deploy:
-    uses: navikt/toi-github-actions-workflows/.github/workflows/build-and-deploy.yaml@autobump-docker-baseimage
+    uses: navikt/toi-github-actions-workflows/.github/workflows/build-and-deploy.yaml@v16
     with:
       java-version: '25'
       deploy-to-dev-if-branch-name-is: 'autobump-docker-baseimage'
