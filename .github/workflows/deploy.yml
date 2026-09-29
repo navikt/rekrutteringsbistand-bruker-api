@@ -3,10 +3,11 @@ on: [push, workflow_dispatch]
 
 jobs:
   call-build-and-deploy:
-    uses: navikt/toi-github-actions-workflows/.github/workflows/build-and-deploy.yaml@v15
+    uses: navikt/toi-github-actions-workflows/.github/workflows/build-and-deploy.yaml@v16
     with:
       java-version: '25'
-      deploy-to-dev-if-branch-name-is: 'brukerinstillinger-api'
+      deploy-to-dev-if-branch-name-is: 'autobump-docker-baseimage'
+      baseimage-tagged-ref: 'europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jre:openjdk-25'
     permissions:
       contents: read
       id-token: write
