@@ -6,7 +6,7 @@ on:
 
 jobs:
   call-oppdater-docker-baseimage:
-    uses: navikt/toi-github-actions-workflows/.github/workflows/oppdater-docker-baseimage.yaml@v16
+    uses: navikt/toi-github-actions-workflows/.github/workflows/oppdater-docker-baseimage.yaml@v17
     with:
       deploy-workflow-filnavn: deploy.yml
     permissions:
