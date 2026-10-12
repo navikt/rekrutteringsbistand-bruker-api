@@ -17,9 +17,9 @@ repositories {
     mavenCentral()
 }
 
-val jacksonVersion = "2.19.2"
-val javalinVersion = "7.2.0"
-val micrometerVersion = "1.15.2"
+val jacksonVersion = "2.22.3"
+val javalinVersion = "7.2.3"
+val micrometerVersion = "1.17.1"
 val flywayVersion = "11.11.2"
 val testContainerVersion = "1.21.4"
 
@@ -43,7 +43,7 @@ dependencies {
     implementation("com.auth0:java-jwt:4.5.0")
     implementation("com.auth0:jwks-rsa:0.23.0")
 
-    implementation("org.postgresql:postgresql:42.7.7")
+    implementation("org.postgresql:postgresql:42.7.14")
     implementation("org.flywaydb:flyway-core:$flywayVersion")
     runtimeOnly("org.flywaydb:flyway-database-postgresql:$flywayVersion")
     implementation("com.zaxxer:HikariCP:7.0.2")
