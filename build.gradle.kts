@@ -20,7 +20,7 @@ repositories {
 val jacksonVersion = "3.2.3"
 val javalinVersion = "7.2.3"
 val micrometerVersion = "1.17.1"
-val flywayVersion = "11.11.2"
+val flywayVersion = "13.10.3"
 val testContainerVersion = "2.0.5"
 
 dependencies {
@@ -35,12 +35,11 @@ dependencies {
     implementation(platform("tools.jackson:jackson-bom:$jacksonVersion"))
     implementation("tools.jackson.module:jackson-module-kotlin")
 
-    implementation("ch.qos.logback:logback-classic:1.5.20")
+    implementation("ch.qos.logback:logback-classic:1.6.3")
     implementation("net.logstash.logback:logstash-logback-encoder:9.0")
     implementation("com.papertrailapp:logback-syslog4j:1.0.0")
-    implementation("org.codehaus.janino:janino:3.1.12")
 
-    implementation("com.auth0:java-jwt:4.5.0")
+    implementation("com.auth0:java-jwt:4.6.2")
     implementation("com.auth0:jwks-rsa:0.23.0")
 
     implementation("org.postgresql:postgresql:42.7.14")
@@ -51,7 +50,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation("org.testcontainers:testcontainers:${testContainerVersion}")
     testImplementation("org.testcontainers:testcontainers-postgresql:${testContainerVersion}")
-    testImplementation("org.assertj:assertj-core:3.24.2")
+    testImplementation("org.assertj:assertj-core:3.27.7")
     testImplementation("no.nav.security:mock-oauth2-server:6.1.1")
 }
 
