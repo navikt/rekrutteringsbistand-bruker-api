@@ -20,7 +20,7 @@ fun main() {
 fun ApplicationContext.startApp(): Javalin {
     val javalin = startJavalin(
         port = 8080,
-        jsonMapper = JavalinJackson3(objectMapper),
+        jsonMapper = JavalinJackson3(JacksonConfig.objectMapper),
         meterRegistry = prometheusRegistry,
         dataSource = dataSource,
         tilgangsstyring = tilgangsstyring,

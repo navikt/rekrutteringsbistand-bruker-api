@@ -1,30 +1,18 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.nyheter
 
+import no.nav.toi.rekrutteringsbistand.bruker.api.JacksonConfig
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import tools.jackson.databind.DeserializationFeature
-import tools.jackson.databind.cfg.DateTimeFeature
-import tools.jackson.module.kotlin.jacksonMapperBuilder
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
-import java.util.TimeZone
 import javax.sql.DataSource
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class NyheterControllerTest : TestRunningApplication() {
-
-    companion object {
-        private val objectMapper = jacksonMapperBuilder()
-            .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
-            .disable(DateTimeFeature.ADJUST_DATES_TO_CONTEXT_TIME_ZONE)
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .defaultTimeZone(TimeZone.getTimeZone("Europe/Oslo"))
-            .build()
-    }
 
     lateinit var nyheterRepository: NyheterRepository
 
@@ -82,7 +70,7 @@ class NyheterControllerTest : TestRunningApplication() {
             tittel = "Ny nyhet",
             innhold = "Nytt innhold",
         )
-        val testNyhetJson = objectMapper.writeValueAsString(testNyhet)
+        val testNyhetJson = JacksonConfig.objectMapper.writeValueAsString(testNyhet)
 
         val accessToken = appCtx.mockOauth2Server.issueToken("azuread",
             "testsubject", appCtx.env["AZURE_APP_CLIENT_ID"],
@@ -103,7 +91,7 @@ class NyheterControllerTest : TestRunningApplication() {
             tittel = "Ny nyhet",
             innhold = "Nytt innhold",
         )
-        val testNyhetJson = objectMapper.writeValueAsString(testNyhet)
+        val testNyhetJson = JacksonConfig.objectMapper.writeValueAsString(testNyhet)
 
         val accessToken = appCtx.mockOauth2Server.issueToken("azuread",
             "testsubject", appCtx.env["AZURE_APP_CLIENT_ID"],
@@ -125,7 +113,7 @@ class NyheterControllerTest : TestRunningApplication() {
             tittel = "Oppdatert nyhet",
             innhold = "Nytt innhold",
         )
-        val testNyhetJson = objectMapper.writeValueAsString(testNyhet)
+        val testNyhetJson = JacksonConfig.objectMapper.writeValueAsString(testNyhet)
 
         val accessToken = appCtx.mockOauth2Server.issueToken("azuread",
             "testsubject", appCtx.env["AZURE_APP_CLIENT_ID"],
@@ -147,7 +135,7 @@ class NyheterControllerTest : TestRunningApplication() {
             tittel = "Oppdatert nyhet",
             innhold = "Nytt innhold",
         )
-        val testNyhetJson = objectMapper.writeValueAsString(testNyhet)
+        val testNyhetJson = JacksonConfig.objectMapper.writeValueAsString(testNyhet)
 
         val accessToken = appCtx.mockOauth2Server.issueToken("azuread",
             "testsubject", appCtx.env["AZURE_APP_CLIENT_ID"],

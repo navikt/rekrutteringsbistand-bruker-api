@@ -15,10 +15,6 @@ import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.NyheterController
 import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.NyheterRepository
 import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.TilbakemeldingerController
 import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.TilbakemeldingerRepository
-import tools.jackson.databind.DeserializationFeature
-import tools.jackson.databind.cfg.DateTimeFeature
-import tools.jackson.databind.json.JsonMapper
-import tools.jackson.module.kotlin.jacksonMapperBuilder
 import no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger.BrukerinnstillingerController
 import no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger.BrukerinnstillingerRepository
 import java.util.*
@@ -30,13 +26,6 @@ open class ApplicationContext(envInn: Map<String, String>) {
     val env: Map<String, String> by lazy { envInn }
 
     val dataSource = createDataSource()
-
-    val objectMapper: JsonMapper = jacksonMapperBuilder()
-        .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
-        .disable(DateTimeFeature.ADJUST_DATES_TO_CONTEXT_TIME_ZONE)
-        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-        .defaultTimeZone(TimeZone.getTimeZone("Europe/Oslo"))
-        .build()
 
     val prometheusRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT).also { registry ->
         ClassLoaderMetrics().bindTo(registry)
@@ -52,13 +41,13 @@ open class ApplicationContext(envInn: Map<String, String>) {
 
     val naisController = NaisController(prometheusRegistry)
 
-    val nyheterController = NyheterController(objectMapper, nyheterRepository)
+    val nyheterController = NyheterController(JacksonConfig.objectMapper, nyheterRepository)
 
     val tilbakemeldingerRepository = TilbakemeldingerRepository(dataSource)
-    val tilbakemeldingerController = TilbakemeldingerController(objectMapper, tilbakemeldingerRepository)
+    val tilbakemeldingerController = TilbakemeldingerController(JacksonConfig.objectMapper, tilbakemeldingerRepository)
 
     val brukerinnstillingerRepository = BrukerinnstillingerRepository(dataSource)
-    val brukerinnstillingerController = BrukerinnstillingerController(objectMapper, brukerinnstillingerRepository)
+    val brukerinnstillingerController = BrukerinnstillingerController(JacksonConfig.objectMapper, brukerinnstillingerRepository)
 
     val tilgangsstyring = Tilgangsstyring()
 
