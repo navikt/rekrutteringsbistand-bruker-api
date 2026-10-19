@@ -1,10 +1,5 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api
 
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics
@@ -32,12 +27,6 @@ open class ApplicationContext(envInn: Map<String, String>) {
 
     val dataSource = createDataSource()
 
-    val objectMapper: ObjectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
-        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-        .disable(DeserializationFeature.ADJUST_DATES_TO_CONTEXT_TIME_ZONE)
-        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-        .setTimeZone(TimeZone.getTimeZone("Europe/Oslo"))
-
     val prometheusRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT).also { registry ->
         ClassLoaderMetrics().bindTo(registry)
         JvmMemoryMetrics().bindTo(registry)
@@ -52,13 +41,13 @@ open class ApplicationContext(envInn: Map<String, String>) {
 
     val naisController = NaisController(prometheusRegistry)
 
-    val nyheterController = NyheterController(objectMapper, nyheterRepository)
+    val nyheterController = NyheterController(JacksonConfig.objectMapper, nyheterRepository)
 
     val tilbakemeldingerRepository = TilbakemeldingerRepository(dataSource)
-    val tilbakemeldingerController = TilbakemeldingerController(objectMapper, tilbakemeldingerRepository)
+    val tilbakemeldingerController = TilbakemeldingerController(JacksonConfig.objectMapper, tilbakemeldingerRepository)
 
     val brukerinnstillingerRepository = BrukerinnstillingerRepository(dataSource)
-    val brukerinnstillingerController = BrukerinnstillingerController(objectMapper, brukerinnstillingerRepository)
+    val brukerinnstillingerController = BrukerinnstillingerController(JacksonConfig.objectMapper, brukerinnstillingerRepository)
 
     val tilgangsstyring = Tilgangsstyring()
 

@@ -1,6 +1,5 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.nyheter
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.javalin.apibuilder.ApiBuilder.get
 import io.javalin.apibuilder.ApiBuilder.post
 import io.javalin.apibuilder.ApiBuilder.put
@@ -9,6 +8,7 @@ import no.nav.toi.rekrutteringsbistand.bruker.api.NavAnsattRolle
 import no.nav.toi.rekrutteringsbistand.bruker.api.Tilgangsrolle
 import no.nav.toi.rekrutteringsbistand.bruker.api.autentisertNavBruker
 import no.nav.toi.rekrutteringsbistand.bruker.api.log
+import tools.jackson.databind.ObjectMapper
 import java.util.UUID
 
 class NyheterController(

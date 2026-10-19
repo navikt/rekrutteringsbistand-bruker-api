@@ -1,6 +1,5 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.javalin.apibuilder.ApiBuilder.delete
 import io.javalin.apibuilder.ApiBuilder.get
 import io.javalin.apibuilder.ApiBuilder.post
@@ -10,6 +9,7 @@ import no.nav.toi.rekrutteringsbistand.bruker.api.NavAnsattRolle
 import no.nav.toi.rekrutteringsbistand.bruker.api.Tilgangsrolle
 import no.nav.toi.rekrutteringsbistand.bruker.api.autentisertNavBruker
 import no.nav.toi.rekrutteringsbistand.bruker.api.log
+import tools.jackson.databind.ObjectMapper
 import java.util.UUID
 
 class TilbakemeldingerController(

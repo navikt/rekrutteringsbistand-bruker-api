@@ -1,7 +1,8 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api
 
 import io.javalin.Javalin
-import io.javalin.json.JavalinJackson
+import io.javalin.json.JavalinJackson3
+import io.javalin.json.JsonMapper
 import io.javalin.micrometer.MicrometerPlugin
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.flywaydb.core.Flyway
@@ -19,7 +20,7 @@ fun main() {
 fun ApplicationContext.startApp(): Javalin {
     val javalin = startJavalin(
         port = 8080,
-        jsonMapper = JavalinJackson(objectMapper),
+        jsonMapper = JavalinJackson3(JacksonConfig.objectMapper),
         meterRegistry = prometheusRegistry,
         dataSource = dataSource,
         tilgangsstyring = tilgangsstyring,
@@ -43,7 +44,7 @@ private fun ApplicationContext.setupAllRoutes() {
 
 fun ApplicationContext.startJavalin(
     port: Int = 8080,
-    jsonMapper: JavalinJackson,
+    jsonMapper: JsonMapper,
     meterRegistry: PrometheusMeterRegistry,
     dataSource: DataSource,
     tilgangsstyring: Tilgangsstyring,
