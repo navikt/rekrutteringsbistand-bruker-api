@@ -1,12 +1,12 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.javalin.apibuilder.ApiBuilder.get
 import io.javalin.apibuilder.ApiBuilder.put
 import io.javalin.http.Context
 import no.nav.toi.rekrutteringsbistand.bruker.api.NavAnsattRolle
 import no.nav.toi.rekrutteringsbistand.bruker.api.Tilgangsrolle
 import no.nav.toi.rekrutteringsbistand.bruker.api.autentisertNavBruker
+import tools.jackson.databind.ObjectMapper
 
 data class BrukerinnstillingerDto(
     val antallLesteNyheter: Int = 0,
