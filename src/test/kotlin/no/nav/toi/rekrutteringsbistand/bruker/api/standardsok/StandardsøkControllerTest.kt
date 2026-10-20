@@ -20,6 +20,8 @@ class StandardsøkControllerTest : TestRunningApplication() {
     private val objectMapper = JacksonConfig.objectMapper
     private val endepunkt = "$lokalUrlBase/api/standardsok/rekrutteringstreff"
     private val idag = LocalDate.now(ZoneId.of("Europe/Oslo"))
+    private val syntetiskNummer =
+        FødselsnummerTestdata.lagNummer(dag = 15, måned = 6 + 80, år = 1990, individer = 0..499)
 
     private fun nyIdent() = "TEST-${UUID.randomUUID()}"
 
@@ -319,7 +321,7 @@ class StandardsøkControllerTest : TestRunningApplication() {
     @Test
     fun `fødselsnummer fjernes fra navnet på søket og fra søkeordene`() {
         val navIdent = nyIdent()
-        val nummer = syntetiskFødselsnummer()
+        val nummer = syntetiskNummer
 
         val søk = opprett(navIdent, "Treff $nummer", fritekst = listOf("kokk $nummer", nummer))
 
@@ -335,7 +337,7 @@ class StandardsøkControllerTest : TestRunningApplication() {
     fun `fødselsnummer fjernes fra navnet også ved erstatting`() {
         val navIdent = nyIdent()
         val søk = opprett(navIdent, "Før")
-        val respons = erstatt(navIdent, søk.id, "Etter ${syntetiskFødselsnummer()}")
+        val respons = erstatt(navIdent, søk.id, "Etter $syntetiskNummer")
         val oppdatert = objectMapper.readValue(respons.body(), StandardsøkDto::class.java)
         assertThat(oppdatert.navn).isEqualTo("Etter")
         assertThat(oppdatert.fritekstFiltrert).isTrue()
@@ -344,7 +346,7 @@ class StandardsøkControllerTest : TestRunningApplication() {
     @Test
     fun `navn som bare er et fødselsnummer gir 400`() {
         val navIdent = nyIdent()
-        val respons = send(opprettForespørsel(navIdent, syntetiskFødselsnummer()))
+        val respons = send(opprettForespørsel(navIdent, syntetiskNummer))
         assertThat(respons.statusCode()).isEqualTo(400)
         assertThat(antallIDatabasen(navIdent)).isZero()
     }
@@ -411,20 +413,4 @@ class StandardsøkControllerTest : TestRunningApplication() {
         assertThat(radIDatabasen(aktivt)).isNotNull()
     }
 
-    /** Syntetisk nummer (måned + 80) med gyldige kontrollsifre, laget når testen kjører. */
-    private fun syntetiskFødselsnummer(): String =
-        (0..499).firstNotNullOf { individ ->
-            val ni = "158690" + "%03d".format(individ)
-            val sifre = ni.map { it - '0' }
-            val k1 = kontroll(sifre, intArrayOf(3, 7, 6, 1, 8, 9, 4, 5, 2)) ?: return@firstNotNullOf null
-            val k2 = kontroll(sifre + k1, intArrayOf(5, 4, 3, 2, 7, 6, 5, 4, 3, 2)) ?: return@firstNotNullOf null
-            "$ni$k1$k2"
-        }
-
-    private fun kontroll(sifre: List<Int>, vekter: IntArray): Int? =
-        when (val rest = 11 - vekter.indices.sumOf { vekter[it] * sifre[it] } % 11) {
-            11 -> 0
-            10 -> null
-            else -> rest
-        }
 }

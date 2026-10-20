@@ -9,31 +9,10 @@ import org.junit.jupiter.api.Test
  */
 class FødselsnummerfilterTest {
 
-    private val vekter1 = intArrayOf(3, 7, 6, 1, 8, 9, 4, 5, 2)
-    private val vekter2 = intArrayOf(5, 4, 3, 2, 7, 6, 5, 4, 3, 2)
-
-    private fun kontrollsiffer(sifre: List<Int>, vekter: IntArray): Int? {
-        val rest = 11 - vekter.indices.sumOf { vekter[it] * sifre[it] } % 11
-        return when (rest) {
-            11 -> 0
-            10 -> null
-            else -> rest
-        }
-    }
-
-    private fun lagNummer(dag: Int, måned: Int, år: Int, individer: IntRange): String =
-        individer.firstNotNullOf { individ ->
-            val ni = "%02d%02d%02d%03d".format(dag, måned, år % 100, individ)
-            val sifre = ni.map { it - '0' }
-            val k1 = kontrollsiffer(sifre, vekter1) ?: return@firstNotNullOf null
-            val k2 = kontrollsiffer(sifre + k1, vekter2) ?: return@firstNotNullOf null
-            "$ni$k1$k2"
-        }
-
-    private val fødselsnummer = lagNummer(dag = 31, måned = 12, år = 1854, individer = 500..749)
-    private val dNummer = lagNummer(dag = 31 + 40, måned = 12, år = 1854, individer = 500..749)
-    private val hNummer = lagNummer(dag = 15, måned = 12 + 40, år = 1854, individer = 500..749)
-    private val syntetiskNummer = lagNummer(dag = 15, måned = 6 + 80, år = 1990, individer = 0..499)
+    private val fødselsnummer = FødselsnummerTestdata.lagNummer(dag = 31, måned = 12, år = 1854, individer = 500..749)
+    private val dNummer = FødselsnummerTestdata.lagNummer(dag = 31 + 40, måned = 12, år = 1854, individer = 500..749)
+    private val hNummer = FødselsnummerTestdata.lagNummer(dag = 15, måned = 12 + 40, år = 1854, individer = 500..749)
+    private val syntetiskNummer = FødselsnummerTestdata.lagNummer(dag = 15, måned = 6 + 80, år = 1990, individer = 0..499)
 
     @Test
     fun `fjerner gyldig fødselsnummer`() {
@@ -79,7 +58,7 @@ class FødselsnummerfilterTest {
 
     @Test
     fun `beholder 11 sifre med ugyldig dato selv om kontrollsifrene stemmer`() {
-        val ugyldigDato = lagNummer(dag = 32, måned = 1, år = 1990, individer = 0..499)
+        val ugyldigDato = FødselsnummerTestdata.lagNummer(dag = 32, måned = 1, år = 1990, individer = 0..499)
         assertThat(Fødselsnummerfilter.fjern(ugyldigDato).fjernet).isFalse()
     }
 

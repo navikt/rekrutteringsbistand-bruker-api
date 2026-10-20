@@ -4,7 +4,6 @@ import no.nav.toi.rekrutteringsbistand.bruker.api.log
 import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Sletter søk som ikke er brukt, lagret eller valgt som standard på seks måneder.
@@ -16,15 +15,28 @@ class StandardsøkOpprydningsjobb(
     private val metrikker: StandardsøkMetrikker,
     private val forsinkelse: Duration = Duration.ofMinutes(1),
     private val intervall: Duration = Duration.ofDays(1),
-) {
-    private val startet = AtomicBoolean(false)
+) : AutoCloseable {
+    private val livssyklusLås = Any()
+    private var startet = false
+    private var stanset = false
     private val executor = Executors.newSingleThreadScheduledExecutor { runnable ->
         Thread(runnable, "standardsok-opprydning").apply { isDaemon = true }
     }
 
     fun start() {
-        if (startet.getAndSet(true)) return
-        executor.scheduleAtFixedRate(::kjør, forsinkelse.toMillis(), intervall.toMillis(), TimeUnit.MILLISECONDS)
+        synchronized(livssyklusLås) {
+            if (startet || stanset) return
+            startet = true
+            executor.scheduleAtFixedRate(::kjør, forsinkelse.toMillis(), intervall.toMillis(), TimeUnit.MILLISECONDS)
+        }
+    }
+
+    override fun close() {
+        synchronized(livssyklusLås) {
+            if (stanset) return
+            stanset = true
+            executor.shutdownNow()
+        }
     }
 
     fun kjør() {
