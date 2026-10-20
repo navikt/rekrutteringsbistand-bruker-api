@@ -17,6 +17,13 @@ import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.Tilbakemeldin
 import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.TilbakemeldingerRepository
 import no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger.BrukerinnstillingerController
 import no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger.BrukerinnstillingerRepository
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkController
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkMetrikker
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkOpprydningsjobb
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkRepository
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkService
+import java.time.Clock
+import java.time.ZoneId
 import java.util.*
 import javax.sql.DataSource
 
@@ -48,6 +55,12 @@ open class ApplicationContext(envInn: Map<String, String>) {
 
     val brukerinnstillingerRepository = BrukerinnstillingerRepository(dataSource)
     val brukerinnstillingerController = BrukerinnstillingerController(JacksonConfig.objectMapper, brukerinnstillingerRepository)
+
+    val klokke: Clock = Clock.system(ZoneId.of("Europe/Oslo"))
+    val standardsøkMetrikker = StandardsøkMetrikker(prometheusRegistry, klokke)
+    val standardsøkService = StandardsøkService(dataSource, StandardsøkRepository(), standardsøkMetrikker, klokke)
+    val standardsøkController = StandardsøkController(JacksonConfig.objectMapper, standardsøkService)
+    val standardsøkOpprydningsjobb = StandardsøkOpprydningsjobb(standardsøkService, standardsøkMetrikker)
 
     val tilgangsstyring = Tilgangsstyring()
 

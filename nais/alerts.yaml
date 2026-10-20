@@ -38,3 +38,14 @@ spec:
           labels:
             namespace: toi
             severity: warning
+
+        # Måleren er 0 til første kjøring etter oppstart, derfor venter vi 30 minutter før alerten går.
+        - alert: rekrutteringsbistand-bruker-api-standardsok-opprydning
+          expr: time() - max(standardsok_opprydning_sist_vellykket_sekunder{app="rekrutteringsbistand-bruker-api"}) > 2 * 24 * 60 * 60
+          for: 30m
+          annotations:
+            summary: Opprydningen av lagrede søk har ikke kjørt uten feil på over to døgn
+            action: "https://logs.az.nav.no/goto/837a1fc426ad1d937272a0488f9b700e?security_tenant=navlogs"
+          labels:
+            namespace: toi
+            severity: warning

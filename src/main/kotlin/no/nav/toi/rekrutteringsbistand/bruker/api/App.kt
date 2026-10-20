@@ -5,6 +5,7 @@ import io.javalin.json.JavalinJackson3
 import io.javalin.json.JsonMapper
 import io.javalin.micrometer.MicrometerPlugin
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkFeil
 import org.flywaydb.core.Flyway
 import org.slf4j.LoggerFactory
 import java.util.*
@@ -31,6 +32,7 @@ fun ApplicationContext.startApp(): Javalin {
         modiaOppfolging = modiaOppfolging,
         modiaGenerellTilgang = modiaGenerell
     )
+    standardsøkOpprydningsjobb.start()
 
     return javalin
 }
@@ -40,6 +42,7 @@ private fun ApplicationContext.setupAllRoutes() {
     nyheterController.setupRoutes()
     tilbakemeldingerController.setupRoutes()
     brukerinnstillingerController.setupRoutes()
+    standardsøkController.setupRoutes()
 }
 
 fun ApplicationContext.startJavalin(
@@ -83,6 +86,8 @@ fun ApplicationContext.startJavalin(
                     modiaGenerellTilgang = modiaGenerellTilgang
                 )
             )
+        }.exception(StandardsøkFeil::class.java) { e, ctx ->
+            ctx.status(e.status).json(mapOf("feil" to e.feil))
         }.exception(IllegalArgumentException::class.java) { e, ctx ->
             log.info("IllegalArgumentException: ${e.message}", e)
             ctx.status(400).result(e.message ?: "")
