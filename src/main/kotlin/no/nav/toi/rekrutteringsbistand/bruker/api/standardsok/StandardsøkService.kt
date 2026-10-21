@@ -36,13 +36,12 @@ class StandardsøkService(
     fun opprett(domene: StandardsøkDomene, navIdent: String, input: GyldigStandardsøkInput): StandardsøkDto {
         val idag = idag()
         val grense = Utløpsregler.sisteUtløpteSistAktiv(idag)
-        val søk = iTransaksjon { c ->
+        val (søk, slettedeUtløpte) = iTransaksjon { c ->
             repository.låsVeileder(c, domene, navIdent)
             val slettedeUtløpte = repository.slettUtløpteForVeileder(c, domene, navIdent, grense)
-            metrikker.slettet(domene, "utlop", slettedeUtløpte)
             val antall = repository.antall(c, domene, navIdent)
             if (antall >= MAKS_ANTALL_SØK) throw StandardsøkFeil.ForMangeSøk()
-            Standardsøk(
+            val søk = Standardsøk(
                 id = UUID.randomUUID(),
                 navIdent = navIdent,
                 navn = input.navn,
@@ -50,8 +49,11 @@ class StandardsøkService(
                 filter = input.filter,
                 fritekst = input.fritekst,
                 sistAktiv = idag,
-            ).also { repository.opprett(c, domene, it) }
+            )
+            repository.opprett(c, domene, søk)
+            søk to slettedeUtløpte
         }
+        metrikker.slettet(domene, "utlop", slettedeUtløpte)
         registrerLagring(domene, "opprettet", input)
         return søk.tilDto(idag, input.fødselsnummerFjernet)
     }
@@ -65,15 +67,17 @@ class StandardsøkService(
         return søk.tilDto(idag, input.fødselsnummerFjernet)
     }
 
-    /** Fjerner merket fra det forrige standardsøket og fornyer fristen bare for det valgte. */
+    /**
+     * Fjerner merket fra det forrige standardsøket og fornyer fristen bare for det valgte.
+     * Finnes ikke søket, for eksempel fordi det ble slettet samtidig, ruller vi tilbake så det forrige merket blir stående.
+     */
     fun settSomStandard(domene: StandardsøkDomene, navIdent: String, id: UUID) {
         val idag = idag()
         iTransaksjon { c ->
             repository.låsVeileder(c, domene, navIdent)
-            repository.hentAktiv(c, domene, navIdent, id, Utløpsregler.sisteUtløpteSistAktiv(idag))
-                ?: throw StandardsøkFeil.IkkeFunnet()
             repository.fjernStandardmerke(c, domene, navIdent)
-            repository.merkSomStandard(c, domene, navIdent, id, idag)
+            val merket = repository.merkSomStandard(c, domene, navIdent, id, idag, Utløpsregler.sisteUtløpteSistAktiv(idag))
+            if (merket == 0) throw StandardsøkFeil.IkkeFunnet()
         }
     }
 
@@ -85,14 +89,20 @@ class StandardsøkService(
         metrikker.slettet(domene, "veileder")
     }
 
-    /** Fornyer fristen før søket tas i bruk, og gir 404 hvis søket er utløpt eller ikke finnes. */
+    /**
+     * Fornyer fristen før søket tas i bruk, og gir 404 hvis søket er utløpt eller ikke finnes.
+     * Vi skriver bare når datoen er eldre enn i dag, så bruk gir høyst én skriving per søk i døgnet.
+     */
     fun registrerBruk(domene: StandardsøkDomene, navIdent: String, id: UUID): StandardsøkDto {
         val idag = idag()
         val grense = Utløpsregler.sisteUtløpteSistAktiv(idag)
         val søk = dataSource.connection.use { c ->
-            repository.oppdaterSistAktivHvisEldre(c, domene, navIdent, id, idag, grense)
-            repository.hentAktiv(c, domene, navIdent, id, grense)
-        } ?: throw StandardsøkFeil.IkkeFunnet()
+            val søk = repository.hentAktiv(c, domene, navIdent, id, grense) ?: throw StandardsøkFeil.IkkeFunnet()
+            if (!søk.sistAktiv.isBefore(idag)) return@use søk
+            val oppdatert = repository.oppdaterSistAktiv(c, domene, navIdent, id, idag, grense)
+            if (oppdatert == 0) throw StandardsøkFeil.IkkeFunnet()
+            søk.copy(sistAktiv = idag)
+        }
         return søk.tilDto(idag)
     }
 

@@ -114,6 +114,11 @@ class StandardsøkControllerTest : TestRunningApplication() {
 
     private val utløptDato get() = Utløpsregler.sisteUtløpteSistAktiv(idag)
 
+    private fun slettedeUtløpte(): Double =
+        appCtx.prometheusRegistry.find("standardsok.slettet")
+            .tags("domene", "rekrutteringstreff", "arsak", "utlop")
+            .counter()?.count() ?: 0.0
+
     @AfterEach
     fun ryddOpp() {
         appCtx.dataSource.connection.use { it.prepareStatement("DELETE FROM standardsok_rekrutteringstreff").executeUpdate() }
@@ -216,6 +221,16 @@ class StandardsøkControllerTest : TestRunningApplication() {
     }
 
     @Test
+    fun `standardvalg av et søk som ikke finnes beholder det gamle standardsøket`() {
+        val navIdent = nyIdent()
+        val standard = settInn(navIdent, "Standard", idag.minusDays(3), erStandard = true)
+
+        assertThat(send(settStandardForespørsel(navIdent, UUID.randomUUID())).statusCode()).isEqualTo(404)
+
+        assertThat(radIDatabasen(standard)).isEqualTo(true to idag.minusDays(3))
+    }
+
+    @Test
     fun `sletting fjerner søket og gir 404 andre gang`() {
         val navIdent = nyIdent()
         val søk = opprett(navIdent, "Slettes")
@@ -260,6 +275,19 @@ class StandardsøkControllerTest : TestRunningApplication() {
         repeat(MAKS_ANTALL_SØK) { opprett(navIdent, "Søk $it") }
         assertThat(send(opprettForespørsel(navIdent, "Ett for mye")).statusCode()).isEqualTo(409)
         assertThat(antallIDatabasen(navIdent)).isEqualTo(MAKS_ANTALL_SØK)
+    }
+
+    @Test
+    fun `avvist opprettelse beholder utløpte søk og teller dem ikke som slettet`() {
+        val navIdent = nyIdent()
+        repeat(MAKS_ANTALL_SØK) { settInn(navIdent, "Aktivt $it", idag) }
+        val utløpt = settInn(navIdent, "Utløpt", utløptDato)
+        val slettetFør = slettedeUtløpte()
+
+        assertThat(send(opprettForespørsel(navIdent, "Ett for mye")).statusCode()).isEqualTo(409)
+
+        assertThat(radIDatabasen(utløpt)).isNotNull()
+        assertThat(slettedeUtløpte()).isEqualTo(slettetFør)
     }
 
     @Test
@@ -365,6 +393,10 @@ class StandardsøkControllerTest : TestRunningApplication() {
         val søk = objectMapper.readValue(respons.body(), StandardsøkDto::class.java)
         assertThat(søk.sistAktiv).isEqualTo(idag)
         assertThat(radIDatabasen(id)!!.second).isEqualTo(idag)
+
+        val igjen = bruk(navIdent, id)
+        assertThat(igjen.statusCode()).isEqualTo(200)
+        assertThat(objectMapper.readValue(igjen.body(), StandardsøkDto::class.java).sistAktiv).isEqualTo(idag)
     }
 
     @Test

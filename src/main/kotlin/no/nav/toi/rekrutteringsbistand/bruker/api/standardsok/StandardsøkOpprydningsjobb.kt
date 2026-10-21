@@ -14,7 +14,7 @@ class StandardsøkOpprydningsjobb(
     private val service: StandardsøkService,
     private val metrikker: StandardsøkMetrikker,
     private val forsinkelse: Duration = Duration.ofMinutes(1),
-    private val intervall: Duration = Duration.ofDays(1),
+    private val intervall: Duration = Duration.ofHours(1),
 ) : AutoCloseable {
     private val livssyklusLås = Any()
     private var startet = false

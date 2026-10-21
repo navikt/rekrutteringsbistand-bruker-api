@@ -98,18 +98,7 @@ class StandardsøkRepository {
         }
     }
 
-    fun merkSomStandard(c: Connection, domene: StandardsøkDomene, navIdent: String, id: UUID, idag: LocalDate): Int =
-        c.prepareStatement(
-            "UPDATE ${domene.tabell} SET erStandard = TRUE, sistAktiv = ? WHERE id = ? AND navIdent = ?"
-        ).use { ps ->
-            ps.setObject(1, idag)
-            ps.setObject(2, id)
-            ps.setString(3, navIdent)
-            ps.executeUpdate()
-        }
-
-    /** Skriver bare når datoen er eldre enn i dag, så bruk gir høyst én skriving per søk i døgnet. */
-    fun oppdaterSistAktivHvisEldre(
+    fun merkSomStandard(
         c: Connection,
         domene: StandardsøkDomene,
         navIdent: String,
@@ -118,17 +107,30 @@ class StandardsøkRepository {
         grense: LocalDate,
     ): Int =
         c.prepareStatement(
-            """
-            UPDATE ${domene.tabell}
-            SET sistAktiv = ?
-            WHERE id = ? AND navIdent = ? AND sistAktiv > ? AND sistAktiv < ?
-            """.trimIndent()
+            "UPDATE ${domene.tabell} SET erStandard = TRUE, sistAktiv = ? WHERE id = ? AND navIdent = ? AND sistAktiv > ?"
         ).use { ps ->
             ps.setObject(1, idag)
             ps.setObject(2, id)
             ps.setString(3, navIdent)
             ps.setObject(4, grense)
-            ps.setObject(5, idag)
+            ps.executeUpdate()
+        }
+
+    fun oppdaterSistAktiv(
+        c: Connection,
+        domene: StandardsøkDomene,
+        navIdent: String,
+        id: UUID,
+        idag: LocalDate,
+        grense: LocalDate,
+    ): Int =
+        c.prepareStatement(
+            "UPDATE ${domene.tabell} SET sistAktiv = ? WHERE id = ? AND navIdent = ? AND sistAktiv > ?"
+        ).use { ps ->
+            ps.setObject(1, idag)
+            ps.setObject(2, id)
+            ps.setString(3, navIdent)
+            ps.setObject(4, grense)
             ps.executeUpdate()
         }
 
