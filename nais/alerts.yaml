@@ -38,3 +38,15 @@ spec:
           labels:
             namespace: toi
             severity: warning
+
+        # Jobben kjører hver time. Måleren er 0 til første vellykkede kjøring etter oppstart, så etter
+        # en deploy går alerten bare hvis de to første kjøringene feiler eller jobben ikke starter.
+        - alert: rekrutteringsbistand-bruker-api-standardsok-opprydning
+          expr: time() - max(standardsok_opprydning_sist_vellykket_sekunder{app="rekrutteringsbistand-bruker-api"}) > 6 * 60 * 60
+          for: 2h
+          annotations:
+            summary: Opprydningen av lagrede søk har ikke kjørt uten feil på over seks timer
+            action: "https://logs.az.nav.no/goto/837a1fc426ad1d937272a0488f9b700e?security_tenant=navlogs"
+          labels:
+            namespace: toi
+            severity: warning
