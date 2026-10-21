@@ -116,6 +116,29 @@ class StandardsøkRepository {
             ps.executeUpdate()
         }
 
+    /**
+     * Gjør det sist brukte aktive søket til standard når veilederen ikke har et aktivt standardsøk.
+     * Utløpte rader må være slettet først, ellers stopper den unike indeksen oppdateringen.
+     */
+    fun velgStandardHvisMangler(c: Connection, domene: StandardsøkDomene, navIdent: String, grense: LocalDate): Int =
+        c.prepareStatement(
+            """
+            UPDATE ${domene.tabell} SET erStandard = TRUE
+            WHERE id = (
+                SELECT id FROM ${domene.tabell}
+                WHERE navIdent = ? AND sistAktiv > ?
+                ORDER BY sistAktiv DESC, navn, id
+                LIMIT 1
+            )
+            AND NOT EXISTS (SELECT 1 FROM ${domene.tabell} WHERE navIdent = ? AND erStandard)
+            """.trimIndent()
+        ).use { ps ->
+            ps.setString(1, navIdent)
+            ps.setObject(2, grense)
+            ps.setString(3, navIdent)
+            ps.executeUpdate()
+        }
+
     fun oppdaterSistAktiv(
         c: Connection,
         domene: StandardsøkDomene,

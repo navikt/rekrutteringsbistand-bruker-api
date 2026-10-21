@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Sletter søk som ikke er brukt, lagret eller valgt som standard på seks måneder.
+ * Slettes et standardsøk, velger servicen et nytt neste gang veilederen henter listen.
  * Jobben er idempotent og kjører derfor på alle podene uten leader election.
  * Den logger bare antall, aldri innhold.
  */

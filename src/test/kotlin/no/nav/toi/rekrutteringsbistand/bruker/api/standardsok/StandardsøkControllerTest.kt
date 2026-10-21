@@ -175,6 +175,20 @@ class StandardsøkControllerTest : TestRunningApplication() {
     }
 
     @Test
+    fun `standardsøket står først, og resten sorteres etter norsk alfabet med æ, ø og å til slutt`() {
+        val navIdent = nyIdent()
+        val søk = listOf("Østlandet", "Åpne treff", "Ærlige treff", "bergen", "Arendal", "Zebra")
+            .associateWith { opprett(navIdent, it, "sortering=nyeste").id }
+
+        assertThat(hent(navIdent).map { it.navn })
+            .containsExactly("Østlandet", "Arendal", "bergen", "Zebra", "Ærlige treff", "Åpne treff")
+
+        assertThat(send(settStandardForespørsel(navIdent, søk.getValue("Zebra"))).statusCode()).isEqualTo(204)
+        assertThat(hent(navIdent).map { it.navn })
+            .containsExactly("Zebra", "Arendal", "bergen", "Ærlige treff", "Østlandet", "Åpne treff")
+    }
+
+    @Test
     fun `like navn er lov, og endring eller sletting av ett søk påvirker ikke det andre`() {
         val navIdent = nyIdent()
         val første = opprett(navIdent, "Mine treff", "fylker=03")
@@ -240,12 +254,36 @@ class StandardsøkControllerTest : TestRunningApplication() {
     }
 
     @Test
-    fun `sletting av standardsøket velger ikke et annet standardsøk`() {
+    fun `sletting av standardsøket gjør det sist brukte søket til standard`() {
         val navIdent = nyIdent()
-        val standard = opprett(navIdent, "Standard")
-        opprett(navIdent, "Annet")
-        slett(navIdent, standard.id)
-        assertThat(hent(navIdent).single().erStandard).isFalse()
+        val standard = settInn(navIdent, "Standard", idag, erStandard = true)
+        settInn(navIdent, "Eldre", idag.minusMonths(2))
+        val nylig = settInn(navIdent, "Nylig", idag.minusDays(2))
+
+        assertThat(slett(navIdent, standard).statusCode()).isEqualTo(204)
+
+        val søk = hent(navIdent)
+        assertThat(søk.filter { it.erStandard }.map { it.id }).containsExactly(nylig)
+        assertThat(radIDatabasen(nylig)).isEqualTo(true to idag.minusDays(2))
+    }
+
+    @Test
+    fun `sletting av eneste søk gir tom liste uten standardsøk`() {
+        val navIdent = nyIdent()
+        val eneste = opprett(navIdent, "Eneste")
+        assertThat(slett(navIdent, eneste.id).statusCode()).isEqualTo(204)
+        assertThat(hent(navIdent)).isEmpty()
+    }
+
+    @Test
+    fun `sletting av et annet søk beholder standardsøket`() {
+        val navIdent = nyIdent()
+        val standard = settInn(navIdent, "Standard", idag.minusMonths(3), erStandard = true)
+        val annet = settInn(navIdent, "Annet", idag)
+
+        assertThat(slett(navIdent, annet).statusCode()).isEqualTo(204)
+
+        assertThat(radIDatabasen(standard)).isEqualTo(true to idag.minusMonths(3))
     }
 
     @Test
@@ -431,6 +469,33 @@ class StandardsøkControllerTest : TestRunningApplication() {
 
         assertThat(nytt.erStandard).isTrue()
         assertThat(antallIDatabasen(navIdent)).isEqualTo(1)
+    }
+
+    @Test
+    fun `utløpt standardsøk erstattes av det sist brukte aktive søket når listen hentes`() {
+        val navIdent = nyIdent()
+        val utløpt = settInn(navIdent, "Utløpt standard", utløptDato, erStandard = true)
+        settInn(navIdent, "Eldre", idag.minusMonths(3))
+        val nylig = settInn(navIdent, "Nylig", idag.minusDays(1))
+        val slettetFør = slettedeUtløpte()
+
+        val søk = hent(navIdent)
+
+        assertThat(søk.filter { it.erStandard }.map { it.id }).containsExactly(nylig)
+        assertThat(radIDatabasen(utløpt)).isNull()
+        assertThat(slettedeUtløpte()).isEqualTo(slettetFør + 1)
+    }
+
+    @Test
+    fun `etter opprydningsjobben får veilederen et nytt standardsøk`() {
+        val navIdent = nyIdent()
+        settInn(navIdent, "Utløpt standard", utløptDato, erStandard = true)
+        val aktivt = settInn(navIdent, "Aktivt", idag.minusDays(5))
+
+        appCtx.standardsøkOpprydningsjobb.kjør()
+
+        assertThat(hent(navIdent).single { it.erStandard }.id).isEqualTo(aktivt)
+        assertThat(antallIDatabasen(navIdent, kunStandard = true)).isEqualTo(1)
     }
 
     @Test

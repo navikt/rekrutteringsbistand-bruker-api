@@ -13,7 +13,8 @@ CREATE TABLE standardsok_rekrutteringstreff (
 CREATE INDEX standardsok_rekrutteringstreff_navident_idx
     ON standardsok_rekrutteringstreff (navIdent);
 
--- Siste vern mot flere standardsøk per veileder. Servicen låser per veileder før den bytter.
+-- Siste vern mot flere standardsøk per veileder. Servicen låser per veileder og sørger for
+-- at en veileder med aktive søk alltid har nøyaktig ett standardsøk.
 CREATE UNIQUE INDEX standardsok_rekrutteringstreff_ett_standardsok_idx
     ON standardsok_rekrutteringstreff (navIdent)
     WHERE erStandard;
