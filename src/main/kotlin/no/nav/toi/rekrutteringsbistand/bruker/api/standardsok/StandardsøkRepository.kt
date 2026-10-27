@@ -33,14 +33,6 @@ class StandardsøkRepository {
             ps.executeQuery().use { rs -> if (rs.next()) rs.tilStandardsøk() else null }
         }
 
-    /** Låser veilederens søk i domenet til transaksjonen er ferdig, på tvers av podene. */
-    fun låsVeileder(c: Connection, domene: StandardsøkDomene, navIdent: String) {
-        c.prepareStatement("SELECT pg_advisory_xact_lock(hashtextextended(?, 0))").use { ps ->
-            ps.setString(1, "${domene.tabell}:$navIdent")
-            ps.executeQuery().use { it.next() }
-        }
-    }
-
     fun antall(c: Connection, domene: StandardsøkDomene, navIdent: String): Int =
         c.prepareStatement("SELECT count(*) FROM ${domene.tabell} WHERE navIdent = ?").use { ps ->
             ps.setString(1, navIdent)

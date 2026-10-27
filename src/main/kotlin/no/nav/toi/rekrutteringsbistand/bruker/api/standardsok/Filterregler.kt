@@ -12,17 +12,17 @@ class Filterregler(private val gyldigeVerdier: Map<String, (String) -> Boolean>)
 
     fun erGyldig(filter: String): Boolean {
         if (filter.isEmpty()) return true
-        val brukteParametere = mutableSetOf<String>()
-        for (del in filter.split('&')) {
-            val navnOgVerdi = del.split('=', limit = 2)
-            if (navnOgVerdi.size != 2) return false
-            val navn = dekod(navnOgVerdi[0]) ?: return false
-            val verdi = dekod(navnOgVerdi[1]) ?: return false
-            val regel = gyldigeVerdier[navn] ?: return false
-            if (!brukteParametere.add(navn)) return false
-            if (!regel(verdi)) return false
-        }
-        return true
+        val parametere = filter.split('&').map { tilParameter(it) ?: return false }
+        return parametere.map { it.first }.distinct().size == parametere.size &&
+            parametere.all { (navn, verdi) -> gyldigeVerdier[navn]?.invoke(verdi) == true }
+    }
+
+    private fun tilParameter(del: String): Pair<String, String>? {
+        val navnOgVerdi = del.split('=', limit = 2)
+        if (navnOgVerdi.size != 2) return null
+        val navn = dekod(navnOgVerdi[0]) ?: return null
+        val verdi = dekod(navnOgVerdi[1]) ?: return null
+        return navn to verdi
     }
 
     private fun dekod(tekst: String): String? =
@@ -44,14 +44,16 @@ private fun liste(gyldig: (String) -> Boolean): (String) -> Boolean = { verdi ->
 private val tosifret = Regex("""\d{2}""")
 private val firesifret = Regex("""\d{4}""")
 
+enum class TreffFilterParameter(val navn: String, val regel: (String) -> Boolean) {
+    VISNING("visning", enAv("alle", "mine", "mitt_kontor", "valgte_kontorer")),
+    SORTERING("sortering", enAv("sist_oppdaterte", "nyeste", "eldste")),
+    STATUSER("statuser", liste(enAv("UTKAST", "PUBLISERT", "FULLFØRT", "AVLYST", "SLETTET"))),
+    PUBLISERT_STATUSER("publisertStatuser", liste(enAv("ÅPEN_FOR_SØKERE", "SVARFRIST_PASSERT"))),
+    FYLKER("fylker", liste(tosifret::matches)),
+    KOMMUNER("kommuner", liste(firesifret::matches)),
+    KONTORER("kontorer", liste(firesifret::matches)),
+}
+
 val rekrutteringstreffFilterregler = Filterregler(
-    mapOf(
-        "visning" to enAv("alle", "mine", "mitt_kontor", "valgte_kontorer"),
-        "sortering" to enAv("sist_oppdaterte", "nyeste", "eldste"),
-        "statuser" to liste(enAv("UTKAST", "PUBLISERT", "FULLFØRT", "AVLYST", "SLETTET")),
-        "publisertStatuser" to liste(enAv("ÅPEN_FOR_SØKERE", "SVARFRIST_PASSERT")),
-        "fylker" to liste(tosifret::matches),
-        "kommuner" to liste(firesifret::matches),
-        "kontorer" to liste(firesifret::matches),
-    )
+    TreffFilterParameter.entries.associate { it.navn to it.regel }
 )

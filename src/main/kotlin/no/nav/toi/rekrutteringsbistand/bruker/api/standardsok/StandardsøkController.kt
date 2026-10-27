@@ -13,10 +13,6 @@ import tools.jackson.core.JacksonException
 import tools.jackson.databind.ObjectMapper
 import java.util.UUID
 
-/**
- * Nav-identen kommer alltid fra tokenet, aldri fra body eller sti.
- * Ingen logging av navn, filter eller søkeord. Feil får faste tekster, se [StandardsøkFeil].
- */
 class StandardsøkController(
     private val objectMapper: ObjectMapper,
     private val service: StandardsøkService,
@@ -69,13 +65,14 @@ class StandardsøkController(
             val bruker = ctx.autentisertNavBruker()
             bruker.verifiserAutorisasjon(*domene.roller.toTypedArray())
             handling(domene, bruker.hentNavIdent())
-        } catch (e: StandardsøkFeil) {
-            throw e
-        } catch (e: HttpResponseException) {
-            throw e
         } catch (e: Exception) {
-            log.error("Uventet feil i lagrede søk", FeilUtenMelding(e))
-            throw StandardsøkFeil.Intern()
+            when (e) {
+                is StandardsøkFeil, is HttpResponseException -> throw e
+                else -> {
+                    log.error("Uventet feil i lagrede søk", FeilUtenMelding(e))
+                    throw StandardsøkFeil.Intern()
+                }
+            }
         }
     }
 

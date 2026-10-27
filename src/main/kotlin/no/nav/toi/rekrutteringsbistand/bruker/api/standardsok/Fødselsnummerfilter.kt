@@ -21,18 +21,16 @@ object Fødselsnummerfilter {
     private val vekter1 = intArrayOf(3, 7, 6, 1, 8, 9, 4, 5, 2)
     private val vekter2 = intArrayOf(5, 4, 3, 2, 7, 6, 5, 4, 3, 2)
 
-    fun fjern(tekst: String): Resultat {
-        var fjernet = false
-        val renset = kandidat.replace(tekst) { treff ->
-            if (erGyldig(treff.groupValues[1] + treff.groupValues[2])) {
-                fjernet = true
-                " "
-            } else {
-                treff.value
-            }
+    fun fjern(tekst: String): Resultat =
+        if (kandidat.findAll(tekst).any(::erFødselsnummer)) {
+            val renset = kandidat.replace(tekst) { if (erFødselsnummer(it)) " " else it.value }
+            Resultat(renset.replace(mellomrom, " ").trim(), true)
+        } else {
+            Resultat(tekst, false)
         }
-        return if (fjernet) Resultat(renset.replace(mellomrom, " ").trim(), true) else Resultat(tekst, false)
-    }
+
+    private fun erFødselsnummer(treff: MatchResult): Boolean =
+        erGyldig(treff.groupValues[1] + treff.groupValues[2])
 
     fun erGyldig(sifre: String): Boolean {
         if (sifre.length != 11 || !sifre.all { it in '0'..'9' }) return false
