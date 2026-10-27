@@ -2,6 +2,8 @@ package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok
 
 import no.nav.toi.rekrutteringsbistand.bruker.api.JacksonConfig
 import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.TestRunningApplication
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.domene.StandardsøkDomene
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.utlop.Utløpsregler
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
@@ -14,17 +16,23 @@ import java.time.ZoneId
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 
-class StandardsøkControllerTest : TestRunningApplication() {
+/**
+ * Felles komponenttester for alle domener. Hvert domene har en underklasse med gyldige filtre og egne rolletester.
+ */
+abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomene) : TestRunningApplication() {
+
+    /** To ulike filtre som er gyldige i domenet. */
+    protected abstract val filtre: Pair<String, String>
 
     private val client = HttpClient.newHttpClient()
     private val objectMapper = JacksonConfig.objectMapper
-    private val endepunkt = "$lokalUrlBase/api/standardsok/rekrutteringstreff"
+    protected val endepunkt = "$lokalUrlBase/api/standardsok/${domene.stinavn}"
     private val idag = LocalDate.now(ZoneId.of("Europe/Oslo"))
     private val syntetiskNummer = "12345678901"
 
-    private fun nyIdent() = "TEST-${UUID.randomUUID()}"
+    protected fun nyIdent() = "TEST-${UUID.randomUUID()}"
 
-    private fun token(navIdent: String, gruppe: String = "REKRUTTERINGSBISTAND_ARBEIDSGIVERRETTET"): String =
+    protected fun token(navIdent: String, gruppe: String = "REKRUTTERINGSBISTAND_ARBEIDSGIVERRETTET"): String =
         appCtx.mockOauth2Server.issueToken(
             "azuread",
             "testsubject",
@@ -37,7 +45,7 @@ class StandardsøkControllerTest : TestRunningApplication() {
         .header("Content-Type", "application/json")
         .apply { if (navIdent != null) header("Authorization", "Bearer ${token(navIdent)}") }
 
-    private fun send(request: HttpRequest): HttpResponse<String> =
+    protected fun send(request: HttpRequest): HttpResponse<String> =
         client.send(request, HttpResponse.BodyHandlers.ofString())
 
     private fun hent(navIdent: String): List<StandardsøkDto> {
@@ -75,7 +83,7 @@ class StandardsøkControllerTest : TestRunningApplication() {
         appCtx.dataSource.connection.use { c ->
             c.prepareStatement(
                 """
-                INSERT INTO standardsok_rekrutteringstreff (id, navIdent, navn, erStandard, filter, fritekst, sistAktiv)
+                INSERT INTO ${domene.tabell} (id, navIdent, navn, erStandard, filter, fritekst, sistAktiv)
                 VALUES (?, ?, ?, ?, '', '{}', ?)
                 """.trimIndent()
             ).use { ps ->
@@ -92,7 +100,7 @@ class StandardsøkControllerTest : TestRunningApplication() {
 
     private fun radIDatabasen(id: UUID): Pair<Boolean, LocalDate>? =
         appCtx.dataSource.connection.use { c ->
-            c.prepareStatement("SELECT erStandard, sistAktiv FROM standardsok_rekrutteringstreff WHERE id = ?").use { ps ->
+            c.prepareStatement("SELECT erStandard, sistAktiv FROM ${domene.tabell} WHERE id = ?").use { ps ->
                 ps.setObject(1, id)
                 ps.executeQuery().use { rs ->
                     if (rs.next()) rs.getBoolean(1) to rs.getObject(2, LocalDate::class.java) else null
@@ -103,7 +111,7 @@ class StandardsøkControllerTest : TestRunningApplication() {
     private fun antallIDatabasen(navIdent: String, kunStandard: Boolean = false): Int =
         appCtx.dataSource.connection.use { c ->
             c.prepareStatement(
-                "SELECT count(*) FROM standardsok_rekrutteringstreff WHERE navIdent = ?" +
+                "SELECT count(*) FROM ${domene.tabell} WHERE navIdent = ?" +
                     if (kunStandard) " AND erStandard" else ""
             ).use { ps ->
                 ps.setString(1, navIdent)
@@ -115,35 +123,17 @@ class StandardsøkControllerTest : TestRunningApplication() {
 
     private fun slettedeUtløpte(): Double =
         appCtx.prometheusRegistry.find("standardsok.slettet")
-            .tags("domene", "rekrutteringstreff", "arsak", "utlop")
+            .tags("domene", domene.stinavn, "arsak", "utlop")
             .counter()?.count() ?: 0.0
 
     @AfterEach
     fun ryddOpp() {
-        appCtx.dataSource.connection.use { it.prepareStatement("DELETE FROM standardsok_rekrutteringstreff").executeUpdate() }
+        appCtx.dataSource.connection.use { it.prepareStatement("DELETE FROM ${domene.tabell}").executeUpdate() }
     }
 
     @Test
     fun `gir 401 uten token`() {
         assertThat(send(forespørsel(endepunkt, null).GET().build()).statusCode()).isEqualTo(401)
-    }
-
-    @Test
-    fun `gir 403 uten rolle for rekrutteringstreff`() {
-        val request = HttpRequest.newBuilder()
-            .uri(URI(endepunkt))
-            .header("Authorization", "Bearer ${token(nyIdent(), "REKRUTTERINGSBISTAND_MODIA_GENERELL_TILGANG")}")
-            .GET().build()
-        assertThat(send(request).statusCode()).isEqualTo(403)
-    }
-
-    @Test
-    fun `jobbsøkerrettet veileder har tilgang`() {
-        val request = HttpRequest.newBuilder()
-            .uri(URI(endepunkt))
-            .header("Authorization", "Bearer ${token(nyIdent(), "REKRUTTERINGSBISTAND_JOBBSOKERRETTET")}")
-            .GET().build()
-        assertThat(send(request).statusCode()).isEqualTo(200)
     }
 
     @Test
@@ -160,8 +150,8 @@ class StandardsøkControllerTest : TestRunningApplication() {
     @Test
     fun `første søk blir standard, de neste blir ikke det`() {
         val navIdent = nyIdent()
-        val første = opprett(navIdent, "Publiserte", "statuser=PUBLISERT", listOf("kokk"))
-        val andre = opprett(navIdent, "Utkast", "statuser=UTKAST")
+        val første = opprett(navIdent, "Publiserte", filtre.first, listOf("kokk"))
+        val andre = opprett(navIdent, "Utkast", filtre.second)
 
         assertThat(første.erStandard).isTrue()
         assertThat(andre.erStandard).isFalse()
@@ -177,7 +167,7 @@ class StandardsøkControllerTest : TestRunningApplication() {
     fun `standardsøket står først, og resten sorteres etter norsk alfabet med æ, ø og å til slutt`() {
         val navIdent = nyIdent()
         val søk = listOf("Østlandet", "Åpne treff", "Ærlige treff", "bergen", "Arendal", "Zebra")
-            .associateWith { opprett(navIdent, it, "sortering=nyeste").id }
+            .associateWith { opprett(navIdent, it, filtre.first).id }
 
         assertThat(hent(navIdent).map { it.navn })
             .containsExactly("Østlandet", "Arendal", "bergen", "Zebra", "Ærlige treff", "Åpne treff")
@@ -208,12 +198,12 @@ class StandardsøkControllerTest : TestRunningApplication() {
         val standard = settInn(navIdent, "Standard", idag.minusMonths(1), erStandard = true)
         val annet = settInn(navIdent, "Annet", idag.minusMonths(2))
 
-        val respons = erstatt(navIdent, annet, "Nytt navn", "sortering=eldste", listOf("lager"))
+        val respons = erstatt(navIdent, annet, "Nytt navn", filtre.second, listOf("lager"))
         assertThat(respons.statusCode()).isEqualTo(200)
         val oppdatert = objectMapper.readValue(respons.body(), StandardsøkDto::class.java)
 
         assertThat(oppdatert.navn).isEqualTo("Nytt navn")
-        assertThat(oppdatert.filter).isEqualTo("sortering=eldste")
+        assertThat(oppdatert.filter).isEqualTo(filtre.second)
         assertThat(oppdatert.fritekst).containsExactly("lager")
         assertThat(oppdatert.sistAktiv).isEqualTo(idag)
         assertThat(oppdatert.erStandard).isFalse()

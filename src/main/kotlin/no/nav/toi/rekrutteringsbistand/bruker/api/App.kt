@@ -7,7 +7,7 @@ import io.javalin.json.JsonMapper
 import io.javalin.micrometer.MicrometerPlugin
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkFeil
-import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkOpprydningsjobb
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.utlop.StandardsøkOpprydningsjobb
 import org.flywaydb.core.Flyway
 import org.slf4j.LoggerFactory
 import java.util.*

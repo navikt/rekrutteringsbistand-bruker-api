@@ -1,5 +1,6 @@
-package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok
+package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.database
 
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.domene.StandardsøkDomene
 import java.sql.Connection
 import javax.sql.DataSource
 

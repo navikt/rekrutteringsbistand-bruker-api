@@ -1,4 +1,4 @@
-package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok
+package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.utlop
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test

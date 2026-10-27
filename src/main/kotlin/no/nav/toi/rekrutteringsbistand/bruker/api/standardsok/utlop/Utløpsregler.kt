@@ -1,4 +1,4 @@
-package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok
+package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.utlop
 
 import java.time.LocalDate
 

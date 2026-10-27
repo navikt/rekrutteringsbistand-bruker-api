@@ -1,5 +1,7 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok
 
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.domene.StandardsøkDomene
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.filter.Fødselsnummerfilter
 import java.time.LocalDate
 import java.util.UUID
 

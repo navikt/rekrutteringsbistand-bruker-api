@@ -19,8 +19,8 @@ import no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger.Brukerinns
 import no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger.BrukerinnstillingerRepository
 import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkController
 import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkMetrikker
-import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkOpprydningsjobb
-import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkRepository
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.utlop.StandardsøkOpprydningsjobb
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.database.StandardsøkRepository
 import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkService
 import java.time.Clock
 import java.time.ZoneId

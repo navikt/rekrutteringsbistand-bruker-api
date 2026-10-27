@@ -1,5 +1,11 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok
 
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.database.StandardsøkRepository
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.database.executeInTransaction
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.database.låsVeileder
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.domene.StandardsøkDomene
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.domene.Standardsøkdomener
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.utlop.Utløpsregler
 import java.sql.Connection
 import java.text.Collator
 import java.time.Clock
@@ -133,7 +139,7 @@ class StandardsøkService(
 
     fun slettUtløpte(): Map<StandardsøkDomene, Int> {
         val grense = Utløpsregler.sisteUtløpteSistAktiv(idag())
-        return StandardsøkDomene.entries.associateWith { domene ->
+        return Standardsøkdomener.alle.associateWith { domene ->
             dataSource.connection.use { c -> repository.slettUtløpte(c, domene, grense) }
                 .also { metrikker.slettet(domene, "utlop", it) }
         }

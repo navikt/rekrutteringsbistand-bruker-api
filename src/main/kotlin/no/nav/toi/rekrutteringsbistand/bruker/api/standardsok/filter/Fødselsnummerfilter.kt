@@ -1,4 +1,4 @@
-package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok
+package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.filter
 
 /**
  * Fjerner fødselsnumre fra tekst før lagring. Brukes på både navnet på søket og søkeordene.

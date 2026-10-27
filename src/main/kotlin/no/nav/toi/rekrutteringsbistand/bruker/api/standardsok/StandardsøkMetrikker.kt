@@ -2,6 +2,7 @@ package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok
 
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.domene.StandardsøkDomene
 import java.time.Clock
 import java.util.concurrent.atomic.AtomicLong
 

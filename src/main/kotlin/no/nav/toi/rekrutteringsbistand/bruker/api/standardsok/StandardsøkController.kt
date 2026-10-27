@@ -9,6 +9,8 @@ import io.javalin.http.HttpResponseException
 import no.nav.toi.rekrutteringsbistand.bruker.api.Tilgangsrolle
 import no.nav.toi.rekrutteringsbistand.bruker.api.autentisertNavBruker
 import no.nav.toi.rekrutteringsbistand.bruker.api.log
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.domene.StandardsøkDomene
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.domene.Standardsøkdomener
 import tools.jackson.core.JacksonException
 import tools.jackson.databind.ObjectMapper
 import java.util.UUID
@@ -61,7 +63,7 @@ class StandardsøkController(
      */
     private fun håndter(ctx: Context, handling: (StandardsøkDomene, String) -> Unit) {
         try {
-            val domene = StandardsøkDomene.fraStinavn(ctx.pathParam("domene")) ?: throw StandardsøkFeil.IkkeFunnet()
+            val domene = Standardsøkdomener.fraStinavn(ctx.pathParam("domene")) ?: throw StandardsøkFeil.IkkeFunnet()
             val bruker = ctx.autentisertNavBruker()
             bruker.verifiserAutorisasjon(*domene.roller.toTypedArray())
             handling(domene, bruker.hentNavIdent())

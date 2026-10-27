@@ -1,8 +1,11 @@
-package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok
+package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.utlop
 
 import io.javalin.Javalin
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import no.nav.toi.rekrutteringsbistand.bruker.api.kobleStandardsøkOpprydningsjobbTilLivssyklus
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkMetrikker
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkService
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.database.StandardsøkRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.lang.reflect.Proxy

@@ -1,6 +1,9 @@
-package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok
+package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.utlop
 
 import no.nav.toi.rekrutteringsbistand.bruker.api.log
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.FeilUtenMelding
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkMetrikker
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkService
 import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
