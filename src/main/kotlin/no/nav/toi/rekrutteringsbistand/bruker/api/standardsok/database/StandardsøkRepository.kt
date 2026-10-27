@@ -84,14 +84,21 @@ class StandardsøkRepository {
             ps.executeQuery().use { rs -> if (rs.next()) rs.tilStandardsøk() else null }
         }
 
-    fun fjernStandardmerke(c: Connection, domene: StandardsøkDomene, navIdent: String) {
+    /** Id-en til søket som er merket som standard, også om det er utløpt. */
+    fun hentStandardId(c: Connection, domene: StandardsøkDomene, navIdent: String): UUID? =
+        c.prepareStatement("SELECT id FROM ${domene.tabell} WHERE navIdent = ? AND erStandard").use { ps ->
+            ps.setString(1, navIdent)
+            ps.executeQuery().use { rs -> if (rs.next()) rs.getObject(1, UUID::class.java) else null }
+        }
+
+    /** Returnerer antall rader som mistet merket, 0 eller 1. */
+    fun fjernStandardmerke(c: Connection, domene: StandardsøkDomene, navIdent: String): Int =
         c.prepareStatement(
             "UPDATE ${domene.tabell} SET erStandard = FALSE WHERE navIdent = ? AND erStandard"
         ).use { ps ->
             ps.setString(1, navIdent)
             ps.executeUpdate()
         }
-    }
 
     fun merkSomStandard(
         c: Connection,
@@ -108,29 +115,6 @@ class StandardsøkRepository {
             ps.setObject(2, id)
             ps.setString(3, navIdent)
             ps.setObject(4, grense)
-            ps.executeUpdate()
-        }
-
-    /**
-     * Gjør det sist brukte aktive søket til standard når veilederen ikke har et aktivt standardsøk.
-     * Utløpte rader må være slettet først, ellers stopper den unike indeksen oppdateringen.
-     */
-    fun velgStandardHvisMangler(c: Connection, domene: StandardsøkDomene, navIdent: String, grense: LocalDate): Int =
-        c.prepareStatement(
-            """
-            UPDATE ${domene.tabell} SET erStandard = TRUE
-            WHERE id = (
-                SELECT id FROM ${domene.tabell}
-                WHERE navIdent = ? AND sistAktiv > ?
-                ORDER BY sistAktiv DESC, navn, id
-                LIMIT 1
-            )
-            AND NOT EXISTS (SELECT 1 FROM ${domene.tabell} WHERE navIdent = ? AND erStandard)
-            """.trimIndent()
-        ).use { ps ->
-            ps.setString(1, navIdent)
-            ps.setObject(2, grense)
-            ps.setString(3, navIdent)
             ps.executeUpdate()
         }
 

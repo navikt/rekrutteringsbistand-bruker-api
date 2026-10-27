@@ -23,6 +23,8 @@ class StandardsøkController(
         get("/api/standardsok/{domene}", { ctx -> hentAlleStandardsøkHandler(ctx) }, Tilgangsrolle.BESKYTTET)
         post("/api/standardsok/{domene}", { ctx -> opprettStandardsøkHandler(ctx) }, Tilgangsrolle.BESKYTTET)
         put("/api/standardsok/{domene}/{id}", { ctx -> erstattStandardsøkHandler(ctx) }, Tilgangsrolle.BESKYTTET)
+        // Må stå før DELETE /{id}, ellers fanger den ruten segmentet «standard».
+        delete("/api/standardsok/{domene}/standard", { ctx -> velgVanligSøkSomStandardHandler(ctx) }, Tilgangsrolle.BESKYTTET)
         delete("/api/standardsok/{domene}/{id}", { ctx -> slettStandardsøkHandler(ctx) }, Tilgangsrolle.BESKYTTET)
         put("/api/standardsok/{domene}/{id}/standard", { ctx -> settSomStandardHandler(ctx) }, Tilgangsrolle.BESKYTTET)
         post("/api/standardsok/{domene}/{id}/bruk", { ctx -> registrerBrukHandler(ctx) }, Tilgangsrolle.BESKYTTET)
@@ -50,6 +52,11 @@ class StandardsøkController(
 
     private fun settSomStandardHandler(ctx: Context) = håndter(ctx) { domene, navIdent ->
         service.settSomStandard(domene, navIdent, søkeident(ctx))
+        ctx.status(204)
+    }
+
+    private fun velgVanligSøkSomStandardHandler(ctx: Context) = håndter(ctx) { domene, navIdent ->
+        service.velgVanligSøkSomStandard(domene, navIdent)
         ctx.status(204)
     }
 

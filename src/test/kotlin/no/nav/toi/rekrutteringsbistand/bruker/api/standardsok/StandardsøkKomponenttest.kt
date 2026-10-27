@@ -24,11 +24,11 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
     /** To ulike filtre som er gyldige i domenet. */
     protected abstract val filtre: Pair<String, String>
 
-    private val client = HttpClient.newHttpClient()
-    private val objectMapper = JacksonConfig.objectMapper
+    protected val client = HttpClient.newHttpClient()
+    protected val objectMapper = JacksonConfig.objectMapper
     protected val endepunkt = "$lokalUrlBase/api/standardsok/${domene.stinavn}"
-    private val idag = LocalDate.now(ZoneId.of("Europe/Oslo"))
-    private val syntetiskNummer = "12345678901"
+    protected val idag = LocalDate.now(ZoneId.of("Europe/Oslo"))
+    protected val syntetiskNummer = "12345678901"
 
     protected fun nyIdent() = "TEST-${UUID.randomUUID()}"
 
@@ -40,7 +40,7 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
             mapOf("NAVident" to navIdent, "groups" to listOf(appCtx.env[gruppe])),
         ).serialize()
 
-    private fun forespørsel(url: String, navIdent: String?) = HttpRequest.newBuilder()
+    protected fun forespørsel(url: String, navIdent: String?) = HttpRequest.newBuilder()
         .uri(URI(url))
         .header("Content-Type", "application/json")
         .apply { if (navIdent != null) header("Authorization", "Bearer ${token(navIdent)}") }
@@ -48,37 +48,45 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
     protected fun send(request: HttpRequest): HttpResponse<String> =
         client.send(request, HttpResponse.BodyHandlers.ofString())
 
-    private fun hent(navIdent: String): List<StandardsøkDto> {
+    protected fun hent(navIdent: String): List<StandardsøkDto> {
         val respons = send(forespørsel(endepunkt, navIdent).GET().build())
         assertThat(respons.statusCode()).isEqualTo(200)
         return objectMapper.readValue(respons.body(), Array<StandardsøkDto>::class.java).toList()
     }
 
-    private fun body(navn: String, filter: String = "", fritekst: List<String> = emptyList()) =
+    protected fun body(navn: String, filter: String = "", fritekst: List<String> = emptyList()) =
         objectMapper.writeValueAsString(LagreStandardsøkDto(navn, filter, fritekst))
 
-    private fun opprettForespørsel(navIdent: String, navn: String, filter: String = "", fritekst: List<String> = emptyList()) =
+    protected fun opprettForespørsel(navIdent: String, navn: String, filter: String = "", fritekst: List<String> = emptyList()) =
         forespørsel(endepunkt, navIdent).POST(HttpRequest.BodyPublishers.ofString(body(navn, filter, fritekst))).build()
 
-    private fun opprett(navIdent: String, navn: String, filter: String = "", fritekst: List<String> = emptyList()): StandardsøkDto {
+    protected fun opprett(navIdent: String, navn: String, filter: String = "", fritekst: List<String> = emptyList()): StandardsøkDto {
         val respons = send(opprettForespørsel(navIdent, navn, filter, fritekst))
         assertThat(respons.statusCode()).isEqualTo(201)
         return objectMapper.readValue(respons.body(), StandardsøkDto::class.java)
     }
 
-    private fun erstatt(navIdent: String, id: UUID, navn: String, filter: String = "", fritekst: List<String> = emptyList()) =
+    protected fun erstatt(navIdent: String, id: UUID, navn: String, filter: String = "", fritekst: List<String> = emptyList()) =
         send(forespørsel("$endepunkt/$id", navIdent).PUT(HttpRequest.BodyPublishers.ofString(body(navn, filter, fritekst))).build())
 
-    private fun settStandardForespørsel(navIdent: String, id: UUID) =
+    protected fun settStandardForespørsel(navIdent: String, id: UUID) =
         forespørsel("$endepunkt/$id/standard", navIdent).PUT(HttpRequest.BodyPublishers.noBody()).build()
 
-    private fun bruk(navIdent: String, id: UUID) =
+    protected fun bruk(navIdent: String, id: UUID) =
         send(forespørsel("$endepunkt/$id/bruk", navIdent).POST(HttpRequest.BodyPublishers.noBody()).build())
 
-    private fun slett(navIdent: String, id: UUID) =
+    protected fun slett(navIdent: String, id: UUID) =
         send(forespørsel("$endepunkt/$id", navIdent).DELETE().build())
 
-    private fun settInn(navIdent: String, navn: String, sistAktiv: LocalDate, erStandard: Boolean = false): UUID {
+    protected fun velgVanligSøkForespørsel(navIdent: String?, url: String = "$endepunkt/standard") =
+        forespørsel(url, navIdent).DELETE().build()
+
+    protected fun standardValgt(valg: String): Double =
+        appCtx.prometheusRegistry.find("standardsok.standard.valgt")
+            .tags("domene", domene.stinavn, "valg", valg)
+            .counter()?.count() ?: 0.0
+
+    protected fun settInn(navIdent: String, navn: String, sistAktiv: LocalDate, erStandard: Boolean = false): UUID {
         val id = UUID.randomUUID()
         appCtx.dataSource.connection.use { c ->
             c.prepareStatement(
@@ -98,7 +106,7 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
         return id
     }
 
-    private fun radIDatabasen(id: UUID): Pair<Boolean, LocalDate>? =
+    protected fun radIDatabasen(id: UUID): Pair<Boolean, LocalDate>? =
         appCtx.dataSource.connection.use { c ->
             c.prepareStatement("SELECT erStandard, sistAktiv FROM ${domene.tabell} WHERE id = ?").use { ps ->
                 ps.setObject(1, id)
@@ -108,7 +116,7 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
             }
         }
 
-    private fun antallIDatabasen(navIdent: String, kunStandard: Boolean = false): Int =
+    protected fun antallIDatabasen(navIdent: String, kunStandard: Boolean = false): Int =
         appCtx.dataSource.connection.use { c ->
             c.prepareStatement(
                 "SELECT count(*) FROM ${domene.tabell} WHERE navIdent = ?" +
@@ -119,9 +127,9 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
             }
         }
 
-    private val utløptDato get() = Utløpsregler.sisteUtløpteSistAktiv(idag)
+    protected val utløptDato get() = Utløpsregler.sisteUtløpteSistAktiv(idag)
 
-    private fun slettedeUtløpte(): Double =
+    protected fun slettedeUtløpte(): Double =
         appCtx.prometheusRegistry.find("standardsok.slettet")
             .tags("domene", domene.stinavn, "arsak", "utlop")
             .counter()?.count() ?: 0.0
@@ -148,12 +156,11 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
     }
 
     @Test
-    fun `første søk blir standard, de neste blir ikke det`() {
+    fun `nye søk får frist, søkeord og plass i listen`() {
         val navIdent = nyIdent()
         val første = opprett(navIdent, "Publiserte", filtre.first, listOf("kokk"))
         val andre = opprett(navIdent, "Utkast", filtre.second)
 
-        assertThat(første.erStandard).isTrue()
         assertThat(andre.erStandard).isFalse()
         assertThat(første.sistAktiv).isEqualTo(idag)
         assertThat(første.slettes).isEqualTo(idag.plusMonths(6))
@@ -168,6 +175,7 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
         val søk = listOf("Østlandet", "Åpne treff", "Ærlige treff", "bergen", "Arendal", "Zebra")
             .associateWith { opprett(navIdent, it, filtre.first).id }
 
+        assertThat(send(settStandardForespørsel(navIdent, søk.getValue("Østlandet"))).statusCode()).isEqualTo(204)
         assertThat(hent(navIdent).map { it.navn })
             .containsExactly("Østlandet", "Arendal", "bergen", "Zebra", "Ærlige treff", "Åpne treff")
 
@@ -242,20 +250,6 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
     }
 
     @Test
-    fun `sletting av standardsøket gjør det sist brukte søket til standard`() {
-        val navIdent = nyIdent()
-        val standard = settInn(navIdent, "Standard", idag, erStandard = true)
-        settInn(navIdent, "Eldre", idag.minusMonths(2))
-        val nylig = settInn(navIdent, "Nylig", idag.minusDays(2))
-
-        assertThat(slett(navIdent, standard).statusCode()).isEqualTo(204)
-
-        val søk = hent(navIdent)
-        assertThat(søk.filter { it.erStandard }.map { it.id }).containsExactly(nylig)
-        assertThat(radIDatabasen(nylig)).isEqualTo(true to idag.minusDays(2))
-    }
-
-    @Test
     fun `sletting av eneste søk gir tom liste uten standardsøk`() {
         val navIdent = nyIdent()
         val eneste = opprett(navIdent, "Eneste")
@@ -317,7 +311,7 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
     }
 
     @Test
-    fun `samtidige opprettelser gir aldri mer enn ti søk og bare ett standardsøk`() {
+    fun `samtidige opprettelser gir aldri mer enn ti søk og ingen standardsøk`() {
         val navIdent = nyIdent()
         val forespørsler = (1..20).map { opprettForespørsel(navIdent, "Samtidig $it") }
         val statuser = forespørsler
@@ -327,7 +321,7 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
         assertThat(statuser.count { it == 201 }).isEqualTo(MAKS_ANTALL_SØK)
         assertThat(statuser.count { it == 409 }).isEqualTo(20 - MAKS_ANTALL_SØK)
         assertThat(antallIDatabasen(navIdent)).isEqualTo(MAKS_ANTALL_SØK)
-        assertThat(antallIDatabasen(navIdent, kunStandard = true)).isEqualTo(1)
+        assertThat(antallIDatabasen(navIdent, kunStandard = true)).isZero()
     }
 
     @Test
@@ -451,42 +445,14 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
     }
 
     @Test
-    fun `utløpte søk teller ikke mot grensen og hindrer ikke automatisk standardvalg`() {
+    fun `utløpte søk teller ikke mot grensen og slettes når et nytt søk lagres`() {
         val navIdent = nyIdent()
         settInn(navIdent, "Utløpt standard", utløptDato, erStandard = true)
         repeat(MAKS_ANTALL_SØK - 1) { settInn(navIdent, "Utløpt $it", utløptDato) }
 
-        val nytt = opprett(navIdent, "Nytt")
+        opprett(navIdent, "Nytt")
 
-        assertThat(nytt.erStandard).isTrue()
         assertThat(antallIDatabasen(navIdent)).isEqualTo(1)
-    }
-
-    @Test
-    fun `utløpt standardsøk erstattes av det sist brukte aktive søket når listen hentes`() {
-        val navIdent = nyIdent()
-        val utløpt = settInn(navIdent, "Utløpt standard", utløptDato, erStandard = true)
-        settInn(navIdent, "Eldre", idag.minusMonths(3))
-        val nylig = settInn(navIdent, "Nylig", idag.minusDays(1))
-        val slettetFør = slettedeUtløpte()
-
-        val søk = hent(navIdent)
-
-        assertThat(søk.filter { it.erStandard }.map { it.id }).containsExactly(nylig)
-        assertThat(radIDatabasen(utløpt)).isNull()
-        assertThat(slettedeUtløpte()).isEqualTo(slettetFør + 1)
-    }
-
-    @Test
-    fun `etter opprydningsjobben får veilederen et nytt standardsøk`() {
-        val navIdent = nyIdent()
-        settInn(navIdent, "Utløpt standard", utløptDato, erStandard = true)
-        val aktivt = settInn(navIdent, "Aktivt", idag.minusDays(5))
-
-        appCtx.standardsøkOpprydningsjobb.kjør()
-
-        assertThat(hent(navIdent).single { it.erStandard }.id).isEqualTo(aktivt)
-        assertThat(antallIDatabasen(navIdent, kunStandard = true)).isEqualTo(1)
     }
 
     @Test
@@ -501,4 +467,144 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
         assertThat(radIDatabasen(aktivt)).isNotNull()
     }
 
+    @Test
+    fun `første søk blir ikke standard, vanlig søk er standard`() {
+        val navIdent = nyIdent()
+        val første = opprett(navIdent, "Første", filtre.first)
+
+        assertThat(første.erStandard).isFalse()
+        assertThat(hent(navIdent).none { it.erStandard }).isTrue()
+        assertThat(antallIDatabasen(navIdent, kunStandard = true)).isZero()
+    }
+
+    @Test
+    fun `vanlig søk kan velges som standard, og et lagret søk kan velges igjen etterpå`() {
+        val navIdent = nyIdent()
+        val søk = opprett(navIdent, "Lagret", filtre.first).id
+
+        assertThat(send(settStandardForespørsel(navIdent, søk)).statusCode()).isEqualTo(204)
+        assertThat(hent(navIdent).single().erStandard).isTrue()
+
+        assertThat(send(velgVanligSøkForespørsel(navIdent)).statusCode()).isEqualTo(204)
+        assertThat(hent(navIdent).single().erStandard).isFalse()
+        assertThat(hent(navIdent).single().erStandard).`as`("henting skal ikke velge standard på nytt").isFalse()
+
+        assertThat(send(settStandardForespørsel(navIdent, søk)).statusCode()).isEqualTo(204)
+        assertThat(hent(navIdent).single().erStandard).isTrue()
+    }
+
+    @Test
+    fun `å velge vanlig søk fjerner bare merket og sletter ingen søk`() {
+        val navIdent = nyIdent()
+        val standard = settInn(navIdent, "Standard", idag.minusDays(3), erStandard = true)
+        settInn(navIdent, "Annet", idag)
+
+        assertThat(send(velgVanligSøkForespørsel(navIdent)).statusCode()).isEqualTo(204)
+
+        assertThat(radIDatabasen(standard)).isEqualTo(false to idag.minusDays(3))
+        assertThat(antallIDatabasen(navIdent)).isEqualTo(2)
+    }
+
+    @Test
+    fun `å velge vanlig søk er idempotent og telles bare når standarden endres`() {
+        val navIdent = nyIdent()
+        settInn(navIdent, "Standard", idag, erStandard = true)
+        val før = standardValgt("vanlig_sok")
+
+        repeat(3) { assertThat(send(velgVanligSøkForespørsel(navIdent)).statusCode()).isEqualTo(204) }
+
+        assertThat(standardValgt("vanlig_sok")).isEqualTo(før + 1)
+        assertThat(send(velgVanligSøkForespørsel(nyIdent())).statusCode()).isEqualTo(204)
+        assertThat(standardValgt("vanlig_sok")).isEqualTo(før + 1)
+    }
+
+    @Test
+    fun `valg av et lagret søk telles bare når standarden endres`() {
+        val navIdent = nyIdent()
+        val søk = settInn(navIdent, "Søk", idag)
+        val før = standardValgt("lagret_sok")
+
+        repeat(2) { assertThat(send(settStandardForespørsel(navIdent, søk)).statusCode()).isEqualTo(204) }
+
+        assertThat(standardValgt("lagret_sok")).isEqualTo(før + 1)
+    }
+
+    @Test
+    fun `sletting av standardsøket gjør vanlig søk til standard`() {
+        val navIdent = nyIdent()
+        val standard = settInn(navIdent, "Standard", idag, erStandard = true)
+        settInn(navIdent, "Nylig", idag.minusDays(1))
+
+        assertThat(slett(navIdent, standard).statusCode()).isEqualTo(204)
+
+        assertThat(hent(navIdent).none { it.erStandard }).isTrue()
+        assertThat(antallIDatabasen(navIdent, kunStandard = true)).isZero()
+    }
+
+    @Test
+    fun `utløpt standardsøk gir vanlig søk, og henting skriver ikke`() {
+        val navIdent = nyIdent()
+        val utløpt = settInn(navIdent, "Utløpt standard", utløptDato, erStandard = true)
+        settInn(navIdent, "Aktivt", idag.minusDays(1))
+        val slettetFør = slettedeUtløpte()
+
+        assertThat(hent(navIdent).none { it.erStandard }).isTrue()
+
+        assertThat(radIDatabasen(utløpt)).isEqualTo(true to utløptDato)
+        assertThat(slettedeUtløpte()).isEqualTo(slettetFør)
+    }
+
+    @Test
+    fun `etter opprydningsjobben er vanlig søk standard`() {
+        val navIdent = nyIdent()
+        settInn(navIdent, "Utløpt standard", utløptDato, erStandard = true)
+        settInn(navIdent, "Aktivt", idag.minusDays(5))
+
+        appCtx.standardsøkOpprydningsjobb.kjør()
+
+        assertThat(hent(navIdent).single().erStandard).isFalse()
+        assertThat(antallIDatabasen(navIdent, kunStandard = true)).isZero()
+    }
+
+    @Test
+    fun `et lagret søk kan velges som standard selv om et utløpt søk fortsatt er merket`() {
+        val navIdent = nyIdent()
+        val utløpt = settInn(navIdent, "Utløpt standard", utløptDato, erStandard = true)
+        val aktivt = settInn(navIdent, "Aktivt", idag.minusDays(1))
+
+        assertThat(send(settStandardForespørsel(navIdent, aktivt)).statusCode()).isEqualTo(204)
+
+        assertThat(radIDatabasen(aktivt)!!.first).isTrue()
+        assertThat(radIDatabasen(utløpt)!!.first).isFalse()
+    }
+
+    @Test
+    fun `å velge vanlig søk krever token`() {
+        assertThat(send(velgVanligSøkForespørsel(null)).statusCode()).isEqualTo(401)
+    }
+
+    @Test
+    fun `en veileder kan ikke endre en annen veileders standardvalg`() {
+        val eier = nyIdent()
+        val standard = settInn(eier, "Standard", idag, erStandard = true)
+
+        assertThat(send(velgVanligSøkForespørsel(nyIdent())).statusCode()).isEqualTo(204)
+
+        assertThat(radIDatabasen(standard)!!.first).isTrue()
+    }
+
+    @Test
+    fun `samtidige valg av lagret søk og vanlig søk gir aldri mer enn ett standardsøk`() {
+        val navIdent = nyIdent()
+        val ider = (1..3).map { settInn(navIdent, "Søk $it", idag.minusDays(3)) }
+        val forespørsler = (1..30).map {
+            if (it % 2 == 0) velgVanligSøkForespørsel(navIdent) else settStandardForespørsel(navIdent, ider[it % ider.size])
+        }
+        val svar = forespørsler.map { client.sendAsync(it, HttpResponse.BodyHandlers.ofString()) }
+        CompletableFuture.allOf(*svar.toTypedArray()).join()
+
+        assertThat(svar.map { it.get().statusCode() }).containsOnly(204)
+        assertThat(antallIDatabasen(navIdent, kunStandard = true)).isLessThanOrEqualTo(1)
+        assertThat(antallIDatabasen(navIdent)).isEqualTo(3)
+    }
 }

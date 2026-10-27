@@ -17,8 +17,9 @@ import javax.sql.DataSource
 /**
  * Regler for lagrede søk: eierskap, grensen på [MAKS_ANTALL_SØK], standardvalg og utløp.
  *
- * En veileder med aktive søk har alltid nøyaktig ett standardsøk. Det første søket blir standard, og når
- * standardsøket slettes eller utløper, blir det sist brukte søket standard i stedet.
+ * En veileder har høyst ett lagret standardsøk per domene. Uten et merket søk er vanlig søk standard.
+ * Bare [settSomStandard] merker et søk, så et søk blir aldri standard uten at veilederen har valgt det.
+ * Slettes eller utløper standardsøket, blir vanlig søk standard.
  *
  * Endringer i standardvalget og antallet låser veilederens søk i domenet. Uten låsen kan to samtidige kall
  * begge telle 9 søk og gi 11, eller gi to standardsøk. Transaksjonene kjører med READ COMMITTED,
@@ -35,22 +36,12 @@ class StandardsøkService(
     /**
      * Standardsøket kommer først. Resten sorteres etter navn med norsk alfabet og deretter etter id,
      * så menyen ikke bytter rekkefølge når et søk brukes.
-     * Har standardsøket utløpt før opprydningsjobben har kjørt, velges et nytt før listen returneres.
+     * Henting skriver aldri. Utløpte søk er skjult til de slettes.
      */
     fun hentAlle(domene: StandardsøkDomene, navIdent: String): List<StandardsøkDto> {
         val idag = idag()
         val grense = Utløpsregler.sisteUtløpteSistAktiv(idag)
-        val aktive = dataSource.connection.use { c -> repository.hentAktive(c, domene, navIdent, grense) }
-        val søk = if (aktive.isEmpty() || aktive.any { it.erStandard }) {
-            aktive
-        } else {
-            val (oppdatert, slettedeUtløpte) = dataSource.executeInTransaction { c ->
-                val slettedeUtløpte = sikreStandardsøk(c, domene, navIdent, grense)
-                repository.hentAktive(c, domene, navIdent, grense) to slettedeUtløpte
-            }
-            metrikker.slettet(domene, "utlop", slettedeUtløpte)
-            oppdatert
-        }
+        val søk = dataSource.connection.use { c -> repository.hentAktive(c, domene, navIdent, grense) }
         val collator = Collator.getInstance(Locale.forLanguageTag("nb-NO"))
         return søk
             .sortedWith(
@@ -65,14 +56,14 @@ class StandardsøkService(
         val idag = idag()
         val grense = Utløpsregler.sisteUtløpteSistAktiv(idag)
         val (søk, slettedeUtløpte) = dataSource.executeInTransaction { c ->
-            val slettedeUtløpte = sikreStandardsøk(c, domene, navIdent, grense)
+            val slettedeUtløpte = låsOgSlettUtløpte(c, domene, navIdent, grense)
             val antall = repository.antall(c, domene, navIdent)
             if (antall >= MAKS_ANTALL_SØK) throw StandardsøkFeil.ForMangeSøk()
             val søk = Standardsøk(
                 id = UUID.randomUUID(),
                 navIdent = navIdent,
                 navn = input.navn,
-                erStandard = antall == 0,
+                erStandard = false,
                 filter = input.filter,
                 fritekst = input.fritekst,
                 sistAktiv = idag,
@@ -100,21 +91,32 @@ class StandardsøkService(
      */
     fun settSomStandard(domene: StandardsøkDomene, navIdent: String, id: UUID) {
         val idag = idag()
-        dataSource.executeInTransaction { c ->
+        val endret = dataSource.executeInTransaction { c ->
             c.låsVeileder(domene, navIdent)
+            val forrige = repository.hentStandardId(c, domene, navIdent)
             repository.fjernStandardmerke(c, domene, navIdent)
             val merket = repository.merkSomStandard(c, domene, navIdent, id, idag, Utløpsregler.sisteUtløpteSistAktiv(idag))
             if (merket == 0) throw StandardsøkFeil.IkkeFunnet()
+            forrige != id
         }
+        if (endret) metrikker.standardValgt(domene, Standardvalgtype.LAGRET_SØK)
+    }
+    
+    fun velgVanligSøkSomStandard(domene: StandardsøkDomene, navIdent: String) {
+        val fjernet = dataSource.executeInTransaction { c ->
+            c.låsVeileder(domene, navIdent)
+            repository.fjernStandardmerke(c, domene, navIdent)
+        }
+        if (fjernet > 0) metrikker.standardValgt(domene, Standardvalgtype.VANLIG_SØK)
     }
 
-    /** Sletter søket. Var det standardsøket, blir det sist brukte av de andre søkene standard. */
+    /** Sletter søket. Var det standardsøket, blir vanlig søk standard. */
     fun slett(domene: StandardsøkDomene, navIdent: String, id: UUID) {
         val grense = Utløpsregler.sisteUtløpteSistAktiv(idag())
         val slettedeUtløpte = dataSource.executeInTransaction { c ->
             c.låsVeileder(domene, navIdent)
             if (repository.slett(c, domene, navIdent, id, grense) == 0) throw StandardsøkFeil.IkkeFunnet()
-            sikreStandardsøk(c, domene, navIdent, grense)
+            repository.slettUtløpteForVeileder(c, domene, navIdent, grense)
         }
         metrikker.slettet(domene, "veileder")
         metrikker.slettet(domene, "utlop", slettedeUtløpte)
@@ -146,15 +148,12 @@ class StandardsøkService(
     }
 
     /**
-     * Låser veilederen, sletter utløpte søk og velger et nytt standardsøk hvis det mangler.
-     * Utløpte søk slettes først, fordi et utløpt standardsøk ellers blokkerer den unike indeksen.
+     * Låser veilederen og sletter utløpte søk før tellingen, fordi [StandardsøkRepository.antall] teller alle rader.
      * Returnerer antall utløpte søk som ble slettet.
      */
-    private fun sikreStandardsøk(c: Connection, domene: StandardsøkDomene, navIdent: String, grense: LocalDate): Int {
+    private fun låsOgSlettUtløpte(c: Connection, domene: StandardsøkDomene, navIdent: String, grense: LocalDate): Int {
         c.låsVeileder(domene, navIdent)
-        val slettedeUtløpte = repository.slettUtløpteForVeileder(c, domene, navIdent, grense)
-        repository.velgStandardHvisMangler(c, domene, navIdent, grense)
-        return slettedeUtløpte
+        return repository.slettUtløpteForVeileder(c, domene, navIdent, grense)
     }
 
     private fun idag(): LocalDate = LocalDate.now(clock)
