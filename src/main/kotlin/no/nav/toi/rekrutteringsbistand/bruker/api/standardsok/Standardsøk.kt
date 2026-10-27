@@ -1,7 +1,7 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok
 
 import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.domene.StandardsøkDomene
-import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.filter.Fødselsnummerfilter
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.filter.Fødselsnummersjekk
 import java.time.LocalDate
 import java.util.UUID
 
@@ -26,7 +26,6 @@ data class StandardsøkDto(
     val sistAktiv: LocalDate,
     val slettes: LocalDate,
     val visSlettevarsel: Boolean,
-    val fritekstFiltrert: Boolean? = null,
 )
 
 data class Standardsøk(
@@ -39,12 +38,11 @@ data class Standardsøk(
     val sistAktiv: LocalDate,
 )
 
-/** Input etter validering og fjerning av fødselsnumre. Bare denne typen kan lagres. */
+/** Validert input uten fødselsnumre. Bare denne typen kan lagres. */
 class GyldigStandardsøkInput private constructor(
     val navn: String,
     val filter: String,
     val fritekst: List<String>,
-    val fødselsnummerFjernet: Boolean,
 ) {
     companion object {
         fun fra(dto: LagreStandardsøkDto, domene: StandardsøkDomene): GyldigStandardsøkInput {
@@ -65,18 +63,11 @@ class GyldigStandardsøkInput private constructor(
                 )
             }
 
-            val rensetNavn = Fødselsnummerfilter.fjern(navn)
-            if (rensetNavn.tekst.isEmpty()) {
-                throw StandardsøkFeil.UgyldigInput("Navnet kan ikke bare være et fødselsnummer")
+            if (Fødselsnummersjekk.inneholderFødselsnummer(navn) || søkeord.any(Fødselsnummersjekk::inneholderFødselsnummer)) {
+                throw StandardsøkFeil.UgyldigInput("Navnet eller søkeordene inneholder noe som kan være et fødselsnummer")
             }
-            val rensedeSøkeord = søkeord.map(Fødselsnummerfilter::fjern)
 
-            return GyldigStandardsøkInput(
-                navn = rensetNavn.tekst,
-                filter = filter,
-                fritekst = rensedeSøkeord.map { it.tekst }.filter { it.isNotEmpty() },
-                fødselsnummerFjernet = rensetNavn.fjernet || rensedeSøkeord.any { it.fjernet },
-            )
+            return GyldigStandardsøkInput(navn = navn, filter = filter, fritekst = søkeord)
         }
     }
 }

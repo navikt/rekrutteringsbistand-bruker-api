@@ -81,8 +81,8 @@ class StandardsøkService(
             søk to slettedeUtløpte
         }
         metrikker.slettet(domene, "utlop", slettedeUtløpte)
-        registrerLagring(domene, "opprettet", input)
-        return søk.tilDto(idag, input.fødselsnummerFjernet)
+        metrikker.lagret(domene, "opprettet")
+        return søk.tilDto(idag)
     }
 
     fun erstatt(domene: StandardsøkDomene, navIdent: String, id: UUID, input: GyldigStandardsøkInput): StandardsøkDto {
@@ -90,8 +90,8 @@ class StandardsøkService(
         val søk = dataSource.connection.use { c ->
             repository.erstatt(c, domene, navIdent, id, input, idag, Utløpsregler.sisteUtløpteSistAktiv(idag))
         } ?: throw StandardsøkFeil.IkkeFunnet()
-        registrerLagring(domene, "erstattet", input)
-        return søk.tilDto(idag, input.fødselsnummerFjernet)
+        metrikker.lagret(domene, "erstattet")
+        return søk.tilDto(idag)
     }
 
     /**
@@ -159,12 +159,7 @@ class StandardsøkService(
 
     private fun idag(): LocalDate = LocalDate.now(clock)
 
-    private fun registrerLagring(domene: StandardsøkDomene, type: String, input: GyldigStandardsøkInput) {
-        metrikker.lagret(domene, type)
-        if (input.fødselsnummerFjernet) metrikker.fødselsnummerFjernet(domene)
-    }
-
-    private fun Standardsøk.tilDto(idag: LocalDate, fritekstFiltrert: Boolean? = null) = StandardsøkDto(
+    private fun Standardsøk.tilDto(idag: LocalDate) = StandardsøkDto(
         id = id,
         navn = navn,
         erStandard = erStandard,
@@ -173,6 +168,5 @@ class StandardsøkService(
         sistAktiv = sistAktiv,
         slettes = Utløpsregler.slettes(sistAktiv),
         visSlettevarsel = Utløpsregler.visSlettevarsel(sistAktiv, idag),
-        fritekstFiltrert = fritekstFiltrert,
     )
 }

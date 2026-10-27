@@ -159,7 +159,6 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
         assertThat(første.slettes).isEqualTo(idag.plusMonths(6))
         assertThat(første.visSlettevarsel).isFalse()
         assertThat(første.fritekst).containsExactly("kokk")
-        assertThat(første.fritekstFiltrert).isFalse()
         assertThat(hent(navIdent).map { it.navn }).containsExactly("Publiserte", "Utkast")
     }
 
@@ -374,36 +373,39 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
     }
 
     @Test
-    fun `fødselsnummer fjernes fra navnet på søket og fra søkeordene`() {
+    fun `fødselsnummer i navnet gir 400 uten innholdet i svaret, og ingenting lagres`() {
         val navIdent = nyIdent()
-        val nummer = syntetiskNummer
-
-        val søk = opprett(navIdent, "Treff $nummer", fritekst = listOf("kokk $nummer", nummer))
-
-        assertThat(søk.navn).isEqualTo("Treff")
-        assertThat(søk.fritekst).containsExactly("kokk")
-        assertThat(søk.fritekstFiltrert).isTrue()
-        val lagret = hent(navIdent).single()
-        assertThat(lagret.navn).isEqualTo("Treff")
-        assertThat(lagret.fritekst).containsExactly("kokk")
-    }
-
-    @Test
-    fun `fødselsnummer fjernes fra navnet også ved erstatting`() {
-        val navIdent = nyIdent()
-        val søk = opprett(navIdent, "Før")
-        val respons = erstatt(navIdent, søk.id, "Etter $syntetiskNummer")
-        val oppdatert = objectMapper.readValue(respons.body(), StandardsøkDto::class.java)
-        assertThat(oppdatert.navn).isEqualTo("Etter")
-        assertThat(oppdatert.fritekstFiltrert).isTrue()
-    }
-
-    @Test
-    fun `navn som bare er et fødselsnummer gir 400`() {
-        val navIdent = nyIdent()
-        val respons = send(opprettForespørsel(navIdent, syntetiskNummer))
-        assertThat(respons.statusCode()).isEqualTo(400)
+        listOf(syntetiskNummer, "Treff $syntetiskNummer").forEach { navn ->
+            val respons = send(opprettForespørsel(navIdent, navn))
+            assertThat(respons.statusCode()).isEqualTo(400)
+            assertThat(respons.body()).doesNotContain(syntetiskNummer)
+        }
         assertThat(antallIDatabasen(navIdent)).isZero()
+    }
+
+    @Test
+    fun `fødselsnummer i et søkeord gir 400 uten innholdet i svaret, og ingenting lagres`() {
+        val navIdent = nyIdent()
+        listOf(listOf(syntetiskNummer), listOf("kokk", "kokk $syntetiskNummer")).forEach { fritekst ->
+            val respons = send(opprettForespørsel(navIdent, "Treff", filtre.first, fritekst))
+            assertThat(respons.statusCode()).isEqualTo(400)
+            assertThat(respons.body()).doesNotContain(syntetiskNummer)
+        }
+        assertThat(antallIDatabasen(navIdent)).isZero()
+    }
+
+    @Test
+    fun `fødselsnummer ved erstatting gir 400, og søket er uendret`() {
+        val navIdent = nyIdent()
+        val søk = opprett(navIdent, "Før", filtre.first, listOf("kokk"))
+
+        assertThat(erstatt(navIdent, søk.id, "Etter $syntetiskNummer", filtre.second).statusCode()).isEqualTo(400)
+        assertThat(erstatt(navIdent, søk.id, "Etter", filtre.second, listOf(syntetiskNummer)).statusCode()).isEqualTo(400)
+
+        val lagret = hent(navIdent).single()
+        assertThat(lagret.navn).isEqualTo("Før")
+        assertThat(lagret.filter).isEqualTo(filtre.first)
+        assertThat(lagret.fritekst).containsExactly("kokk")
     }
 
     @Test

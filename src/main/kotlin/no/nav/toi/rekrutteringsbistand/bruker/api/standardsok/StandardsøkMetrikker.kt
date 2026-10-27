@@ -20,9 +20,6 @@ class StandardsøkMetrikker(private val registry: MeterRegistry, private val clo
         if (antall > 0) teller("standardsok.slettet", "domene", domene.stinavn, "arsak", årsak).increment(antall.toDouble())
     }
 
-    fun fødselsnummerFjernet(domene: StandardsøkDomene) =
-        teller("standardsok.fodselsnummer.fjernet", "domene", domene.stinavn).increment()
-
     fun opprydningVellykket() = sistVellykketOpprydning.set(clock.instant().epochSecond)
 
     fun opprydningFeilet() = teller("standardsok.opprydning.feil").increment()
