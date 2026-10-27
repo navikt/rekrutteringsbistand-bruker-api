@@ -20,8 +20,7 @@ class StandardsøkControllerTest : TestRunningApplication() {
     private val objectMapper = JacksonConfig.objectMapper
     private val endepunkt = "$lokalUrlBase/api/standardsok/rekrutteringstreff"
     private val idag = LocalDate.now(ZoneId.of("Europe/Oslo"))
-    private val syntetiskNummer =
-        FødselsnummerTestdata.lagNummer(dag = 15, måned = 6 + 80, år = 1990, individer = 0..499)
+    private val syntetiskNummer = "12345678901"
 
     private fun nyIdent() = "TEST-${UUID.randomUUID()}"
 
