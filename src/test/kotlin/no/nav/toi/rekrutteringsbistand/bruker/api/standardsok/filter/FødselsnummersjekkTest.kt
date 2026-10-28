@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test
 
 /**
  * Testene bruker åpenbart falske tall. Sjekken ser bare på antall sifre.
- * Frontend har samme regel i `components/standardsøk/fødselsnummer.ts`. Endres tilfellene her, må regelen der følge med.
+ * Frontend har samme regel i `components/lagrede-søk/fødselsnummer.ts`. Endres tilfellene her, må regelen der følge med.
  */
 class FødselsnummersjekkTest {
 

@@ -3,8 +3,6 @@ package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.domene
 import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkKomponenttest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import java.net.URI
-import java.net.http.HttpRequest
 
 class StillingStandardsøkTest : StandardsøkKomponenttest(StillingDomene) {
 
@@ -19,10 +17,7 @@ class StillingStandardsøkTest : StandardsøkKomponenttest(StillingDomene) {
             "REKRUTTERINGSBISTAND_MODIA_OPPFOLGING",
             "REKRUTTERINGSBISTAND_MODIA_GENERELL_TILGANG",
         ).forEach { gruppe ->
-            val request = HttpRequest.newBuilder()
-                .uri(URI(endepunkt))
-                .header("Authorization", "Bearer ${token(nyIdent(), gruppe)}")
-                .GET().build()
+            val request = forespørsel(endepunkt, nyIdent(), gruppe).GET().build()
             assertThat(send(request).statusCode()).`as`(gruppe).isEqualTo(200)
         }
     }
@@ -30,18 +25,9 @@ class StillingStandardsøkTest : StandardsøkKomponenttest(StillingDomene) {
     @Test
     fun `søk i ett domene er ikke synlige i et annet`() {
         val navIdent = nyIdent()
-        val request = HttpRequest.newBuilder()
-            .uri(URI(endepunkt))
-            .header("Authorization", "Bearer ${token(navIdent)}")
-            .header("Content-Type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString("""{"navn":"Stilling","filter":"","fritekst":[]}"""))
-            .build()
-        assertThat(send(request).statusCode()).isEqualTo(201)
+        opprett(navIdent, "Stilling")
 
-        val treff = HttpRequest.newBuilder()
-            .uri(URI("$lokalUrlBase/api/standardsok/rekrutteringstreff"))
-            .header("Authorization", "Bearer ${token(navIdent)}")
-            .GET().build()
-        assertThat(send(treff).body()).isEqualTo("[]")
+        val treff = send(forespørsel("$lokalUrlBase/api/standardsok/rekrutteringstreff", navIdent).GET().build())
+        assertThat(treff.body()).isEqualTo("[]")
     }
 }

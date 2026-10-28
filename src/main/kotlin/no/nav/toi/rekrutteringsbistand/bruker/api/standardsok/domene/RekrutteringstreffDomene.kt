@@ -20,7 +20,6 @@ object RekrutteringstreffDomene : StandardsøkDomene(
     filterregler = filterreglerFor<RekrutteringstreffFilterparameter>(),
 )
 
-/** Parameterne i treffsøket som kan lagres. */
 enum class RekrutteringstreffFilterparameter(
     override val navn: String,
     override val regel: (String) -> Boolean,

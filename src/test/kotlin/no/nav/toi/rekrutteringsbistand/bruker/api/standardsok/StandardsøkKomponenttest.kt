@@ -3,6 +3,7 @@ package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok
 import no.nav.toi.rekrutteringsbistand.bruker.api.JacksonConfig
 import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.TestRunningApplication
 import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.domene.StandardsøkDomene
+import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.domene.Standardsøkdomener
 import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.utlop.Utløpsregler
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -14,7 +15,6 @@ import java.net.http.HttpResponse
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.UUID
-import java.util.concurrent.CompletableFuture
 
 /**
  * Felles komponenttester for alle domener. Hvert domene har en underklasse med gyldige filtre og egne rolletester.
@@ -40,13 +40,22 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
             mapOf("NAVident" to navIdent, "groups" to listOf(appCtx.env[gruppe])),
         ).serialize()
 
-    protected fun forespørsel(url: String, navIdent: String?) = HttpRequest.newBuilder()
+    protected fun forespørsel(
+        url: String,
+        navIdent: String?,
+        gruppe: String = "REKRUTTERINGSBISTAND_ARBEIDSGIVERRETTET",
+    ) = HttpRequest.newBuilder()
         .uri(URI(url))
         .header("Content-Type", "application/json")
-        .apply { if (navIdent != null) header("Authorization", "Bearer ${token(navIdent)}") }
+        .apply { if (navIdent != null) header("Authorization", "Bearer ${token(navIdent, gruppe)}") }
 
     protected fun send(request: HttpRequest): HttpResponse<String> =
         client.send(request, HttpResponse.BodyHandlers.ofString())
+
+    protected fun sendSamtidig(forespørsler: List<HttpRequest>): List<Int> =
+        forespørsler
+            .map { client.sendAsync(it, HttpResponse.BodyHandlers.ofString()) }
+            .map { it.join().statusCode() }
 
     protected fun hent(navIdent: String): List<StandardsøkDto> {
         val respons = send(forespørsel(endepunkt, navIdent).GET().build())
@@ -78,15 +87,21 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
     protected fun slett(navIdent: String, id: UUID) =
         send(forespørsel("$endepunkt/$id", navIdent).DELETE().build())
 
-    protected fun velgVanligSøkForespørsel(navIdent: String?, url: String = "$endepunkt/standard") =
-        forespørsel(url, navIdent).DELETE().build()
+    protected fun velgVanligSøkForespørsel(navIdent: String?) =
+        forespørsel("$endepunkt/standard", navIdent).DELETE().build()
 
     protected fun standardValgt(valg: String): Double =
         appCtx.prometheusRegistry.find("standardsok.standard.valgt")
             .tags("domene", domene.stinavn, "valg", valg)
             .counter()?.count() ?: 0.0
 
-    protected fun settInn(navIdent: String, navn: String, sistAktiv: LocalDate, erStandard: Boolean = false): UUID {
+    protected fun settInn(
+        navIdent: String,
+        navn: String,
+        sistAktiv: LocalDate,
+        erStandard: Boolean = false,
+        domene: StandardsøkDomene = this.domene,
+    ): UUID {
         val id = UUID.randomUUID()
         appCtx.dataSource.connection.use { c ->
             c.prepareStatement(
@@ -106,12 +121,14 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
         return id
     }
 
-    protected fun radIDatabasen(id: UUID): Pair<Boolean, LocalDate>? =
+    protected data class Rad(val erStandard: Boolean, val sistAktiv: LocalDate)
+
+    protected fun radIDatabasen(id: UUID, domene: StandardsøkDomene = this.domene): Rad? =
         appCtx.dataSource.connection.use { c ->
             c.prepareStatement("SELECT erStandard, sistAktiv FROM ${domene.tabell} WHERE id = ?").use { ps ->
                 ps.setObject(1, id)
                 ps.executeQuery().use { rs ->
-                    if (rs.next()) rs.getBoolean(1) to rs.getObject(2, LocalDate::class.java) else null
+                    if (rs.next()) Rad(rs.getBoolean(1), rs.getObject(2, LocalDate::class.java)) else null
                 }
             }
         }
@@ -136,7 +153,11 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
 
     @AfterEach
     fun ryddOpp() {
-        appCtx.dataSource.connection.use { it.prepareStatement("DELETE FROM ${domene.tabell}").executeUpdate() }
+        appCtx.dataSource.connection.use { c ->
+            Standardsøkdomener.alle.forEach { domene ->
+                c.prepareStatement("DELETE FROM ${domene.tabell}").use { it.executeUpdate() }
+            }
+        }
     }
 
     @Test
@@ -214,7 +235,7 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
         assertThat(oppdatert.fritekst).containsExactly("lager")
         assertThat(oppdatert.sistAktiv).isEqualTo(idag)
         assertThat(oppdatert.erStandard).isFalse()
-        assertThat(radIDatabasen(standard)!!.first).isTrue()
+        assertThat(radIDatabasen(standard)!!.erStandard).isTrue()
     }
 
     @Test
@@ -226,8 +247,8 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
 
         assertThat(send(settStandardForespørsel(navIdent, nyStandard)).statusCode()).isEqualTo(204)
 
-        assertThat(radIDatabasen(gammelStandard)).isEqualTo(false to gammelDato)
-        assertThat(radIDatabasen(nyStandard)).isEqualTo(true to idag)
+        assertThat(radIDatabasen(gammelStandard)).isEqualTo(Rad(erStandard = false, sistAktiv = gammelDato))
+        assertThat(radIDatabasen(nyStandard)).isEqualTo(Rad(erStandard = true, sistAktiv = idag))
     }
 
     @Test
@@ -237,7 +258,7 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
 
         assertThat(send(settStandardForespørsel(navIdent, UUID.randomUUID())).statusCode()).isEqualTo(404)
 
-        assertThat(radIDatabasen(standard)).isEqualTo(true to idag.minusDays(3))
+        assertThat(radIDatabasen(standard)).isEqualTo(Rad(erStandard = true, sistAktiv = idag.minusDays(3)))
     }
 
     @Test
@@ -265,7 +286,7 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
 
         assertThat(slett(navIdent, annet).statusCode()).isEqualTo(204)
 
-        assertThat(radIDatabasen(standard)).isEqualTo(true to idag.minusMonths(3))
+        assertThat(radIDatabasen(standard)).isEqualTo(Rad(erStandard = true, sistAktiv = idag.minusMonths(3)))
     }
 
     @Test
@@ -314,9 +335,7 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
     fun `samtidige opprettelser gir aldri mer enn ti søk og ingen standardsøk`() {
         val navIdent = nyIdent()
         val forespørsler = (1..20).map { opprettForespørsel(navIdent, "Samtidig $it") }
-        val statuser = forespørsler
-            .map { client.sendAsync(it, HttpResponse.BodyHandlers.ofString()) }
-            .let { CompletableFuture.allOf(*it.toTypedArray()).join(); it.map { svar -> svar.get().statusCode() } }
+        val statuser = sendSamtidig(forespørsler)
 
         assertThat(statuser.count { it == 201 }).isEqualTo(MAKS_ANTALL_SØK)
         assertThat(statuser.count { it == 409 }).isEqualTo(20 - MAKS_ANTALL_SØK)
@@ -328,10 +347,9 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
     fun `samtidige standardvalg gir høyst ett standardsøk`() {
         val navIdent = nyIdent()
         val ider = (1..5).map { settInn(navIdent, "Søk $it", idag.minusDays(3)) }
-        val svar = (1..20).map { client.sendAsync(settStandardForespørsel(navIdent, ider[it % ider.size]), HttpResponse.BodyHandlers.ofString()) }
-        CompletableFuture.allOf(*svar.toTypedArray()).join()
+        val forespørsler = (1..20).map { settStandardForespørsel(navIdent, ider[it % ider.size]) }
 
-        assertThat(svar.map { it.get().statusCode() }).containsOnly(204)
+        assertThat(sendSamtidig(forespørsler)).containsOnly(204)
         assertThat(antallIDatabasen(navIdent, kunStandard = true)).isEqualTo(1)
     }
 
@@ -367,23 +385,18 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
     }
 
     @Test
-    fun `fødselsnummer i navnet gir 400 uten innholdet i svaret, og ingenting lagres`() {
+    fun `fødselsnummer i navn eller søkeord gir 400 uten innholdet i svaret, og ingenting lagres`() {
         val navIdent = nyIdent()
-        listOf(syntetiskNummer, "Treff $syntetiskNummer").forEach { navn ->
-            val respons = send(opprettForespørsel(navIdent, navn))
-            assertThat(respons.statusCode()).isEqualTo(400)
-            assertThat(respons.body()).doesNotContain(syntetiskNummer)
-        }
-        assertThat(antallIDatabasen(navIdent)).isZero()
-    }
-
-    @Test
-    fun `fødselsnummer i et søkeord gir 400 uten innholdet i svaret, og ingenting lagres`() {
-        val navIdent = nyIdent()
-        listOf(listOf(syntetiskNummer), listOf("kokk", "kokk $syntetiskNummer")).forEach { fritekst ->
-            val respons = send(opprettForespørsel(navIdent, "Treff", filtre.first, fritekst))
-            assertThat(respons.statusCode()).isEqualTo(400)
-            assertThat(respons.body()).doesNotContain(syntetiskNummer)
+        val tilfeller = listOf(
+            Triple("fødselsnummer som navn", syntetiskNummer, emptyList<String>()),
+            Triple("fødselsnummer etter tekst i navn", "Treff $syntetiskNummer", emptyList()),
+            Triple("fødselsnummer i søkeord", "Treff", listOf(syntetiskNummer)),
+            Triple("fødselsnummer etter tekst i søkeord", "Treff", listOf("kokk", "kokk $syntetiskNummer")),
+        )
+        tilfeller.forEach { (beskrivelse, navn, fritekst) ->
+            val respons = send(opprettForespørsel(navIdent, navn, filtre.first, fritekst))
+            assertThat(respons.statusCode()).describedAs(beskrivelse).isEqualTo(400)
+            assertThat(respons.body()).describedAs(beskrivelse).doesNotContain(syntetiskNummer)
         }
         assertThat(antallIDatabasen(navIdent)).isZero()
     }
@@ -409,13 +422,13 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
         val id = settInn(navIdent, "Gammelt", gammelDato)
 
         hent(navIdent)
-        assertThat(radIDatabasen(id)!!.second).isEqualTo(gammelDato)
+        assertThat(radIDatabasen(id)!!.sistAktiv).isEqualTo(gammelDato)
 
         val respons = bruk(navIdent, id)
         assertThat(respons.statusCode()).isEqualTo(200)
         val søk = objectMapper.readValue(respons.body(), StandardsøkDto::class.java)
         assertThat(søk.sistAktiv).isEqualTo(idag)
-        assertThat(radIDatabasen(id)!!.second).isEqualTo(idag)
+        assertThat(radIDatabasen(id)!!.sistAktiv).isEqualTo(idag)
 
         val igjen = bruk(navIdent, id)
         assertThat(igjen.statusCode()).isEqualTo(200)
@@ -441,7 +454,7 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
         assertThat(erstatt(navIdent, utløpt, "Nytt liv").statusCode()).isEqualTo(404)
         assertThat(send(settStandardForespørsel(navIdent, utløpt)).statusCode()).isEqualTo(404)
         assertThat(slett(navIdent, utløpt).statusCode()).isEqualTo(404)
-        assertThat(radIDatabasen(utløpt)!!.second).isEqualTo(utløptDato)
+        assertThat(radIDatabasen(utløpt)!!.sistAktiv).isEqualTo(utløptDato)
     }
 
     @Test
@@ -501,7 +514,7 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
 
         assertThat(send(velgVanligSøkForespørsel(navIdent)).statusCode()).isEqualTo(204)
 
-        assertThat(radIDatabasen(standard)).isEqualTo(false to idag.minusDays(3))
+        assertThat(radIDatabasen(standard)).isEqualTo(Rad(erStandard = false, sistAktiv = idag.minusDays(3)))
         assertThat(antallIDatabasen(navIdent)).isEqualTo(2)
     }
 
@@ -550,7 +563,7 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
 
         assertThat(hent(navIdent).none { it.erStandard }).isTrue()
 
-        assertThat(radIDatabasen(utløpt)).isEqualTo(true to utløptDato)
+        assertThat(radIDatabasen(utløpt)).isEqualTo(Rad(erStandard = true, sistAktiv = utløptDato))
         assertThat(slettedeUtløpte()).isEqualTo(slettetFør)
     }
 
@@ -574,8 +587,8 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
 
         assertThat(send(settStandardForespørsel(navIdent, aktivt)).statusCode()).isEqualTo(204)
 
-        assertThat(radIDatabasen(aktivt)!!.first).isTrue()
-        assertThat(radIDatabasen(utløpt)!!.first).isFalse()
+        assertThat(radIDatabasen(aktivt)!!.erStandard).isTrue()
+        assertThat(radIDatabasen(utløpt)!!.erStandard).isFalse()
     }
 
     @Test
@@ -590,7 +603,7 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
 
         assertThat(send(velgVanligSøkForespørsel(nyIdent())).statusCode()).isEqualTo(204)
 
-        assertThat(radIDatabasen(standard)!!.first).isTrue()
+        assertThat(radIDatabasen(standard)!!.erStandard).isTrue()
     }
 
     @Test
@@ -600,10 +613,9 @@ abstract class StandardsøkKomponenttest(protected val domene: StandardsøkDomen
         val forespørsler = (1..30).map {
             if (it % 2 == 0) velgVanligSøkForespørsel(navIdent) else settStandardForespørsel(navIdent, ider[it % ider.size])
         }
-        val svar = forespørsler.map { client.sendAsync(it, HttpResponse.BodyHandlers.ofString()) }
-        CompletableFuture.allOf(*svar.toTypedArray()).join()
+        val svar = sendSamtidig(forespørsler)
 
-        assertThat(svar.map { it.get().statusCode() }).containsOnly(204)
+        assertThat(svar).containsOnly(204)
         assertThat(antallIDatabasen(navIdent, kunStandard = true)).isLessThanOrEqualTo(1)
         assertThat(antallIDatabasen(navIdent)).isEqualTo(3)
     }

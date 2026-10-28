@@ -4,7 +4,7 @@ import java.text.Normalizer
 
 /**
  * Finner tekst som ligner et fødselsnummer, så vi kan avvise navn og søkeord før lagring.
- * Søket mot treffene sjekkes ikke, bare det vi lagrer. Frontend har samme regel i `components/standardsøk/fødselsnummer.ts`.
+ * Søket mot treffene sjekkes ikke, bare det vi lagrer. Frontend har samme regel i `components/lagrede-søk/fødselsnummer.ts`.
  *
  * Vi avviser alle tall med 11 sifre, uten å sjekke dato eller kontrollsiffer. Da får vi med D-nummer, H-nummer,
  * syntetiske nummer, tastefeil og fødselsnumre etter reglene fra 2032. Vi avviser heller for mye enn for lite.

@@ -1,7 +1,6 @@
 -- Lagrede søk. Hvert domene har sin egen tabell med lik oppbygning.
 -- Navn og fritekst kan inneholde personopplysninger. Raden slettes seks måneder etter sistAktiv.
--- Den delvise unike indeksen er siste vern mot flere standardsøk per veileder. Servicen låser per veileder
--- og sørger for at en veileder med aktive søk alltid har nøyaktig ett standardsøk.
+-- En veileder har høyst ett standardsøk per domene. Uten merket søk er vanlig søk standard.
 
 CREATE TABLE standardsok_rekrutteringstreff (
     id UUID PRIMARY KEY,

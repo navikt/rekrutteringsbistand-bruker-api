@@ -1,7 +1,5 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.filter
 
-/** Byggeklosser for filterreglene. Brukes av alle domener. */
-
 private const val MAKS_VERDIER_PER_PARAMETER = 50
 
 internal fun enAv(vararg verdier: String): (String) -> Boolean = { it in verdier }

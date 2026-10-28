@@ -31,7 +31,6 @@ class Filterregler(private val gyldigeVerdier: Map<String, (String) -> Boolean>)
         }
 }
 
-/** En tillatt parameter i filteret. Hvert domene har en enum med sine parametere. */
 interface Filterparameter {
     val navn: String
     val regel: (String) -> Boolean

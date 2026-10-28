@@ -16,9 +16,8 @@ object StillingDomene : StandardsøkDomene(
 )
 
 /**
- * Parameterne i stillingssøket som kan lagres. Verdiene følger stillingssøket i frontend.
- * Parametere som ikke beskriver selve søket, som `fritekst`, `side`, `brukStandardsok`, `modal` og `utenOppdrag`,
- * lagres ikke.
+ * Verdiene følger stillingssøket i frontend. Parametere som ikke beskriver selve søket,
+ * som `fritekst`, `side`, `brukStandardsok`, `modal` og `utenOppdrag`, lagres ikke.
  */
 enum class StillingFilterparameter(
     override val navn: String,

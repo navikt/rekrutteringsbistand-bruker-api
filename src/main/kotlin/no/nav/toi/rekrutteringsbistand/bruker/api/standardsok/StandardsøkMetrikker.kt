@@ -13,14 +13,13 @@ class StandardsøkMetrikker(private val registry: MeterRegistry, private val clo
         registry.gauge("standardsok.opprydning.sist.vellykket.sekunder", it)
     }
 
-    fun lagret(domene: StandardsøkDomene, type: String) =
-        teller("standardsok.lagret", "domene", domene.stinavn, "type", type).increment()
+    fun lagret(domene: StandardsøkDomene, type: Lagringstype) =
+        teller("standardsok.lagret", "domene", domene.stinavn, "type", type.label).increment()
 
-    fun slettet(domene: StandardsøkDomene, årsak: String, antall: Int = 1) {
-        if (antall > 0) teller("standardsok.slettet", "domene", domene.stinavn, "arsak", årsak).increment(antall.toDouble())
+    fun slettet(domene: StandardsøkDomene, årsak: Sletteårsak, antall: Int = 1) {
+        if (antall > 0) teller("standardsok.slettet", "domene", domene.stinavn, "arsak", årsak.label).increment(antall.toDouble())
     }
 
-    /** Telles bare når standardvalget faktisk endres, ikke når veilederen velger det som allerede er standard. */
     fun standardValgt(domene: StandardsøkDomene, valg: Standardvalgtype) =
         teller("standardsok.standard.valgt", "domene", domene.stinavn, "valg", valg.label).increment()
 
@@ -29,6 +28,16 @@ class StandardsøkMetrikker(private val registry: MeterRegistry, private val clo
     fun opprydningFeilet() = teller("standardsok.opprydning.feil").increment()
 
     private fun teller(navn: String, vararg tags: String): Counter = registry.counter(navn, *tags)
+}
+
+enum class Lagringstype(val label: String) {
+    OPPRETTET("opprettet"),
+    ERSTATTET("erstattet"),
+}
+
+enum class Sletteårsak(val label: String) {
+    UTLØP("utlop"),
+    VEILEDER("veileder"),
 }
 
 enum class Standardvalgtype(val label: String) {

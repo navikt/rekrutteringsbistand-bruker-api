@@ -8,31 +8,27 @@ import java.sql.ResultSet
 import java.time.LocalDate
 import java.util.UUID
 
-/**
- * Ren SQL mot domenetabellene. Servicen eier transaksjonene og sender inn tilkoblingen.
- * `grense` er seneste utløpte `sistAktiv` fra [Utløpsregler.sisteUtløpteSistAktiv]. Aktive søk har `sistAktiv > grense`.
- * Alle spørringer mot ett søk har både `id` og `navIdent` i WHERE, så ingen kan lese eller endre andres søk.
- */
+/** Alle spørringer mot ett søk har både `id` og `navIdent` i WHERE, så ingen kan lese eller endre andres søk. */
 class StandardsøkRepository {
 
     private val kolonner = "id, navIdent, navn, erStandard, filter, fritekst, sistAktiv"
 
-    fun hentAktive(c: Connection, domene: StandardsøkDomene, navIdent: String, grense: LocalDate): List<Standardsøk> =
+    fun hentAktive(c: Connection, domene: StandardsøkDomene, navIdent: String, utløpsgrense: LocalDate): List<Standardsøk> =
         c.prepareStatement(
             "SELECT $kolonner FROM ${domene.tabell} WHERE navIdent = ? AND sistAktiv > ?"
         ).use { ps ->
             ps.setString(1, navIdent)
-            ps.setObject(2, grense)
+            ps.setObject(2, utløpsgrense)
             ps.executeQuery().use { rs -> buildList { while (rs.next()) add(rs.tilStandardsøk()) } }
         }
 
-    fun hentAktiv(c: Connection, domene: StandardsøkDomene, navIdent: String, id: UUID, grense: LocalDate): Standardsøk? =
+    fun hentAktiv(c: Connection, domene: StandardsøkDomene, navIdent: String, id: UUID, utløpsgrense: LocalDate): Standardsøk? =
         c.prepareStatement(
             "SELECT $kolonner FROM ${domene.tabell} WHERE id = ? AND navIdent = ? AND sistAktiv > ?"
         ).use { ps ->
             ps.setObject(1, id)
             ps.setString(2, navIdent)
-            ps.setObject(3, grense)
+            ps.setObject(3, utløpsgrense)
             ps.executeQuery().use { rs -> if (rs.next()) rs.tilStandardsøk() else null }
         }
 
@@ -64,7 +60,7 @@ class StandardsøkRepository {
         id: UUID,
         input: GyldigStandardsøkInput,
         idag: LocalDate,
-        grense: LocalDate,
+        utløpsgrense: LocalDate,
     ): Standardsøk? =
         c.prepareStatement(
             """
@@ -80,18 +76,16 @@ class StandardsøkRepository {
             ps.setObject(4, idag)
             ps.setObject(5, id)
             ps.setString(6, navIdent)
-            ps.setObject(7, grense)
+            ps.setObject(7, utløpsgrense)
             ps.executeQuery().use { rs -> if (rs.next()) rs.tilStandardsøk() else null }
         }
 
-    /** Id-en til søket som er merket som standard, også om det er utløpt. */
     fun hentStandardId(c: Connection, domene: StandardsøkDomene, navIdent: String): UUID? =
         c.prepareStatement("SELECT id FROM ${domene.tabell} WHERE navIdent = ? AND erStandard").use { ps ->
             ps.setString(1, navIdent)
             ps.executeQuery().use { rs -> if (rs.next()) rs.getObject(1, UUID::class.java) else null }
         }
 
-    /** Returnerer antall rader som mistet merket, 0 eller 1. */
     fun fjernStandardmerke(c: Connection, domene: StandardsøkDomene, navIdent: String): Int =
         c.prepareStatement(
             "UPDATE ${domene.tabell} SET erStandard = FALSE WHERE navIdent = ? AND erStandard"
@@ -106,7 +100,7 @@ class StandardsøkRepository {
         navIdent: String,
         id: UUID,
         idag: LocalDate,
-        grense: LocalDate,
+        utløpsgrense: LocalDate,
     ): Int =
         c.prepareStatement(
             "UPDATE ${domene.tabell} SET erStandard = TRUE, sistAktiv = ? WHERE id = ? AND navIdent = ? AND sistAktiv > ?"
@@ -114,7 +108,7 @@ class StandardsøkRepository {
             ps.setObject(1, idag)
             ps.setObject(2, id)
             ps.setString(3, navIdent)
-            ps.setObject(4, grense)
+            ps.setObject(4, utløpsgrense)
             ps.executeUpdate()
         }
 
@@ -124,7 +118,7 @@ class StandardsøkRepository {
         navIdent: String,
         id: UUID,
         idag: LocalDate,
-        grense: LocalDate,
+        utløpsgrense: LocalDate,
     ): Int =
         c.prepareStatement(
             "UPDATE ${domene.tabell} SET sistAktiv = ? WHERE id = ? AND navIdent = ? AND sistAktiv > ?"
@@ -132,30 +126,30 @@ class StandardsøkRepository {
             ps.setObject(1, idag)
             ps.setObject(2, id)
             ps.setString(3, navIdent)
-            ps.setObject(4, grense)
+            ps.setObject(4, utløpsgrense)
             ps.executeUpdate()
         }
 
-    fun slett(c: Connection, domene: StandardsøkDomene, navIdent: String, id: UUID, grense: LocalDate): Int =
+    fun slett(c: Connection, domene: StandardsøkDomene, navIdent: String, id: UUID, utløpsgrense: LocalDate): Int =
         c.prepareStatement(
             "DELETE FROM ${domene.tabell} WHERE id = ? AND navIdent = ? AND sistAktiv > ?"
         ).use { ps ->
             ps.setObject(1, id)
             ps.setString(2, navIdent)
-            ps.setObject(3, grense)
+            ps.setObject(3, utløpsgrense)
             ps.executeUpdate()
         }
 
-    fun slettUtløpteForVeileder(c: Connection, domene: StandardsøkDomene, navIdent: String, grense: LocalDate): Int =
+    fun slettUtløpteForNavIdent(c: Connection, domene: StandardsøkDomene, navIdent: String, utløpsgrense: LocalDate): Int =
         c.prepareStatement("DELETE FROM ${domene.tabell} WHERE navIdent = ? AND sistAktiv <= ?").use { ps ->
             ps.setString(1, navIdent)
-            ps.setObject(2, grense)
+            ps.setObject(2, utløpsgrense)
             ps.executeUpdate()
         }
 
-    fun slettUtløpte(c: Connection, domene: StandardsøkDomene, grense: LocalDate): Int =
+    fun slettUtløpte(c: Connection, domene: StandardsøkDomene, utløpsgrense: LocalDate): Int =
         c.prepareStatement("DELETE FROM ${domene.tabell} WHERE sistAktiv <= ?").use { ps ->
-            ps.setObject(1, grense)
+            ps.setObject(1, utløpsgrense)
             ps.executeUpdate()
         }
 

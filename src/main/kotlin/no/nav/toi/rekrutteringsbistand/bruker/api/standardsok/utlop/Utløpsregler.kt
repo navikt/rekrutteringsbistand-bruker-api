@@ -19,8 +19,8 @@ object Utløpsregler {
         !idag.isBefore(sistAktiv.plusMonths(MÅNEDER_TIL_VARSEL)) && !erUtløpt(sistAktiv, idag)
 
     /**
-     * Seneste `sistAktiv` som er utløpt i dag. Spørringene bruker `sistAktiv <= grense` for utløpte søk og
-     * `sistAktiv > grense` for aktive, så databasen og koden er enige om hvilke søk som er utløpt.
+     * Spørringene bruker `sistAktiv <= utløpsgrense` for utløpte søk og `sistAktiv > utløpsgrense` for aktive,
+     * så databasen og koden er enige om hvilke søk som er utløpt.
      */
     fun sisteUtløpteSistAktiv(idag: LocalDate): LocalDate {
         var dato = idag.minusMonths(MÅNEDER_TIL_SLETTING)

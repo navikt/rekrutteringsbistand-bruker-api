@@ -37,10 +37,10 @@ class UtløpsreglerTest {
     fun `grensen for databasen gir samme svar som erUtløpt for alle datoer`() {
         var idag = LocalDate.of(2026, 1, 1)
         while (idag.isBefore(LocalDate.of(2029, 1, 1))) {
-            val grense = Utløpsregler.sisteUtløpteSistAktiv(idag)
+            val utløpsgrense = Utløpsregler.sisteUtløpteSistAktiv(idag)
             for (dagerSiden in 0L..250L) {
                 val sistAktiv = idag.minusDays(dagerSiden)
-                assertThat(!sistAktiv.isAfter(grense))
+                assertThat(!sistAktiv.isAfter(utløpsgrense))
                     .describedAs("idag=$idag sistAktiv=$sistAktiv")
                     .isEqualTo(Utløpsregler.erUtløpt(sistAktiv, idag))
             }

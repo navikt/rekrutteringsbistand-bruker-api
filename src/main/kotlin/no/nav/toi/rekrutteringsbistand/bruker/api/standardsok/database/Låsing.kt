@@ -14,8 +14,13 @@ import javax.sql.DataSource
  * Reglene og begrunnelsen står i docs/2-arkitektur/transaksjoner.md i rekrutteringstreff-backend.
  */
 
-/** Låser veilederens søk i domenet til transaksjonen er ferdig. */
-internal fun Connection.låsVeileder(domene: StandardsøkDomene, navIdent: String) {
+internal fun <T> DataSource.medLåstNavIdent(domene: StandardsøkDomene, navIdent: String, block: (Connection) -> T): T =
+    executeInTransaction { c ->
+        c.låsNavIdent(domene, navIdent)
+        block(c)
+    }
+
+private fun Connection.låsNavIdent(domene: StandardsøkDomene, navIdent: String) {
     prepareStatement("SELECT pg_advisory_xact_lock(hashtextextended(?, 0))").use { ps ->
         ps.setString(1, "${domene.tabell}:$navIdent")
         ps.executeQuery().use { it.next() }
@@ -26,7 +31,7 @@ internal fun Connection.låsVeileder(domene: StandardsøkDomene, navIdent: Strin
  * Starter en transaksjon med READ COMMITTED, så tellingen etter en lås ser det andre transaksjoner har committet.
  * Poolen bruker REPEATABLE READ, der øyeblikksbildet ville vært tatt før låsen.
  */
-internal fun <T> DataSource.executeInTransaction(block: (Connection) -> T): T =
+private fun <T> DataSource.executeInTransaction(block: (Connection) -> T): T =
     connection.use { c ->
         val opprinneligIsolasjon = c.transactionIsolation
         c.transactionIsolation = Connection.TRANSACTION_READ_COMMITTED
