@@ -74,10 +74,6 @@ fun ApplicationContext.startJavalin(
         it.kobleLagredeSøkOpprydningsjobbTilLivssyklus(lagredeSøkOpprydningsjobb)
         it.routes.apiBuilder { setupAllRoutes() }
         it.routes.beforeMatched { ctx ->
-            if (ctx.routeRoles().isEmpty()) {
-                // TODO: Burde vi kreve routerole. Vi trenger ikke håndtere både tom input og ubeskyttet, bedre å kreve ubeskytett routerole?
-                return@beforeMatched
-            }
             tilgangsstyring.manage(
                 ctx = ctx,
                 routeRoles = ctx.routeRoles(),
