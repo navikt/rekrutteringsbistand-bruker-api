@@ -17,11 +17,11 @@ import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.Tilbakemeldin
 import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.TilbakemeldingerRepository
 import no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger.BrukerinnstillingerController
 import no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger.BrukerinnstillingerRepository
-import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkController
-import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkMetrikker
-import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.utlop.StandardsøkOpprydningsjobb
-import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.database.StandardsøkRepository
-import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkService
+import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.LagredeSøkController
+import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.LagredeSøkMetrikker
+import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.utlop.LagredeSøkOpprydningsjobb
+import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.database.LagredeSøkRepository
+import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.LagredeSøkService
 import java.time.Clock
 import java.time.ZoneId
 import java.util.*
@@ -57,10 +57,10 @@ open class ApplicationContext(envInn: Map<String, String>) {
     val brukerinnstillingerController = BrukerinnstillingerController(JacksonConfig.objectMapper, brukerinnstillingerRepository)
 
     val klokke: Clock = Clock.system(ZoneId.of("Europe/Oslo"))
-    val standardsøkMetrikker = StandardsøkMetrikker(prometheusRegistry, klokke)
-    val standardsøkService = StandardsøkService(dataSource, StandardsøkRepository(), standardsøkMetrikker, klokke)
-    val standardsøkController = StandardsøkController(JacksonConfig.objectMapper, standardsøkService)
-    val standardsøkOpprydningsjobb = StandardsøkOpprydningsjobb(standardsøkService, standardsøkMetrikker)
+    val lagredeSøkMetrikker = LagredeSøkMetrikker(prometheusRegistry, klokke)
+    val lagredeSøkService = LagredeSøkService(dataSource, LagredeSøkRepository(), lagredeSøkMetrikker, klokke)
+    val lagredeSøkController = LagredeSøkController(JacksonConfig.objectMapper, lagredeSøkService)
+    val lagredeSøkOpprydningsjobb = LagredeSøkOpprydningsjobb(lagredeSøkService, lagredeSøkMetrikker)
 
     val tilgangsstyring = Tilgangsstyring()
 

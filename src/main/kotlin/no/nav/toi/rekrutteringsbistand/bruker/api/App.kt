@@ -6,8 +6,8 @@ import io.javalin.json.JavalinJackson3
 import io.javalin.json.JsonMapper
 import io.javalin.micrometer.MicrometerPlugin
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
-import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.StandardsøkFeil
-import no.nav.toi.rekrutteringsbistand.bruker.api.standardsok.utlop.StandardsøkOpprydningsjobb
+import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.LagredeSøkFeil
+import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.utlop.LagredeSøkOpprydningsjobb
 import org.flywaydb.core.Flyway
 import org.slf4j.LoggerFactory
 import java.util.*
@@ -34,7 +34,7 @@ fun ApplicationContext.startApp(startOpprydningsjobb: Boolean = true): Javalin {
         modiaOppfolging = modiaOppfolging,
         modiaGenerellTilgang = modiaGenerell
     )
-    if (startOpprydningsjobb) standardsøkOpprydningsjobb.start()
+    if (startOpprydningsjobb) lagredeSøkOpprydningsjobb.start()
 
     return javalin
 }
@@ -44,7 +44,7 @@ private fun ApplicationContext.setupAllRoutes() {
     nyheterController.setupRoutes()
     tilbakemeldingerController.setupRoutes()
     brukerinnstillingerController.setupRoutes()
-    standardsøkController.setupRoutes()
+    lagredeSøkController.setupRoutes()
 }
 
 fun ApplicationContext.startJavalin(
@@ -71,7 +71,7 @@ fun ApplicationContext.startJavalin(
         it.http.defaultContentType = "application/json"
         it.jsonMapper(jsonMapper)
         it.registerPlugin(micrometerPlugin)
-        it.kobleStandardsøkOpprydningsjobbTilLivssyklus(standardsøkOpprydningsjobb)
+        it.kobleLagredeSøkOpprydningsjobbTilLivssyklus(lagredeSøkOpprydningsjobb)
         it.routes.apiBuilder { setupAllRoutes() }
         it.routes.beforeMatched { ctx ->
             if (ctx.routeRoles().isEmpty()) {
@@ -90,7 +90,7 @@ fun ApplicationContext.startJavalin(
                     modiaGenerellTilgang = modiaGenerellTilgang
                 )
             )
-        }.exception(StandardsøkFeil::class.java) { e, ctx ->
+        }.exception(LagredeSøkFeil::class.java) { e, ctx ->
             ctx.status(e.status).json(mapOf("feil" to e.feil))
         }.exception(IllegalArgumentException::class.java) { e, ctx ->
             log.info("IllegalArgumentException: ${e.message}", e)
@@ -102,8 +102,8 @@ fun ApplicationContext.startJavalin(
     }.start(port)
 }
 
-internal fun JavalinConfig.kobleStandardsøkOpprydningsjobbTilLivssyklus(
-    jobb: StandardsøkOpprydningsjobb,
+internal fun JavalinConfig.kobleLagredeSøkOpprydningsjobbTilLivssyklus(
+    jobb: LagredeSøkOpprydningsjobb,
 ) {
     events.serverStopping { jobb.close() }
 }
