@@ -9,7 +9,8 @@ abstract class TestRunningApplication {
 
         @JvmStatic
         val appCtx = TestApplicationContext(env)
-        val javalin = appCtx.startApp()
+        // Testene kjører opprydningen selv med kjør(), så den planlagte jobben ikke sletter testdata underveis.
+        val javalin = appCtx.startApp(startOpprydningsjobb = false)
     }
 
 }

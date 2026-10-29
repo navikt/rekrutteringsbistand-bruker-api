@@ -20,7 +20,7 @@ fun main() {
     appContext.startApp()
 }
 
-fun ApplicationContext.startApp(): Javalin {
+fun ApplicationContext.startApp(startOpprydningsjobb: Boolean = true): Javalin {
     val javalin = startJavalin(
         port = 8080,
         jsonMapper = JavalinJackson3(JacksonConfig.objectMapper),
@@ -34,7 +34,7 @@ fun ApplicationContext.startApp(): Javalin {
         modiaOppfolging = modiaOppfolging,
         modiaGenerellTilgang = modiaGenerell
     )
-    standardsøkOpprydningsjobb.start()
+    if (startOpprydningsjobb) standardsøkOpprydningsjobb.start()
 
     return javalin
 }
