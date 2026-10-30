@@ -1,6 +1,7 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok
 
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.database.LagredeSøkRepository
+import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.database.iTransaksjon
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.database.medLåstNavIdent
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.domene.LagredeSøkDomene
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.utlop.Utløpsregler
@@ -36,9 +37,9 @@ class LagredeSøkService(
     fun opprett(domene: LagredeSøkDomene, navIdent: String, input: GyldigLagreSøkInput): LagretSøkDto {
         val idag = idag()
         val utløpsgrense = Utløpsregler.sisteUtløpteSistAktiv(idag)
-        val (søk, slettedeUtløpte) = dataSource.medLåstNavIdent(domene, navIdent) { c ->
-            val slettedeUtløpte = repository.slettUtløpteForNavIdent(c, domene, navIdent, utløpsgrense)
-            val antall = repository.antall(c, domene, navIdent)
+        val søk = dataSource.medLåstNavIdent(domene, navIdent) { c ->
+            // Utløpte søk teller ikke. Opprydningsjobben sletter dem.
+            val antall = repository.antallAktive(c, domene, navIdent, utløpsgrense)
             if (antall >= MAKS_ANTALL_SØK) throw LagredeSøkFeil.ForMangeSøk()
             val søk = LagretSøk(
                 id = UUID.randomUUID(),
@@ -50,9 +51,8 @@ class LagredeSøkService(
                 sistAktiv = idag,
             )
             repository.opprett(c, domene, søk)
-            søk to slettedeUtløpte
+            søk
         }
-        metrikker.slettet(domene, Sletteårsak.UTLØP, slettedeUtløpte)
         metrikker.lagret(domene, Lagringstype.OPPRETTET)
         return søk.tilDto(domene, idag)
     }
@@ -60,7 +60,7 @@ class LagredeSøkService(
     fun erstatt(domene: LagredeSøkDomene, navIdent: String, id: UUID, input: GyldigLagreSøkInput): LagretSøkDto {
         val idag = idag()
         val utløpsgrense = Utløpsregler.sisteUtløpteSistAktiv(idag)
-        val søk = dataSource.connection.use { c ->
+        val søk = dataSource.medLåstNavIdent(domene, navIdent) { c ->
             repository.erstatt(c, domene, navIdent, id, input, idag, utløpsgrense)
         } ?: throw LagredeSøkFeil.IkkeFunnet()
         metrikker.lagret(domene, Lagringstype.ERSTATTET)
@@ -75,7 +75,7 @@ class LagredeSøkService(
         val idag = idag()
         val utløpsgrense = Utløpsregler.sisteUtløpteSistAktiv(idag)
         val endret = dataSource.medLåstNavIdent(domene, navIdent) { c ->
-            val forrige = repository.hentStandardId(c, domene, navIdent)
+            val forrige = repository.hentStandardId(c, domene, navIdent, utløpsgrense)
             repository.fjernStandardmerke(c, domene, navIdent)
             if (id != null && repository.merkSomStandard(c, domene, navIdent, id, idag, utløpsgrense) == 0) {
                 throw LagredeSøkFeil.IkkeFunnet()
@@ -89,21 +89,19 @@ class LagredeSøkService(
 
     fun slett(domene: LagredeSøkDomene, navIdent: String, id: UUID) {
         val utløpsgrense = Utløpsregler.sisteUtløpteSistAktiv(idag())
-        val slettedeUtløpte = dataSource.medLåstNavIdent(domene, navIdent) { c ->
+        dataSource.medLåstNavIdent(domene, navIdent) { c ->
             if (repository.slett(c, domene, navIdent, id, utløpsgrense) == 0) throw LagredeSøkFeil.IkkeFunnet()
-            repository.slettUtløpteForNavIdent(c, domene, navIdent, utløpsgrense)
         }
         metrikker.slettet(domene, Sletteårsak.VEILEDER)
-        metrikker.slettet(domene, Sletteårsak.UTLØP, slettedeUtløpte)
     }
 
     fun registrerBruk(domene: LagredeSøkDomene, navIdent: String, id: UUID): LagretSøkDto {
         val idag = idag()
         val utløpsgrense = Utløpsregler.sisteUtløpteSistAktiv(idag)
-        val søk = dataSource.connection.use { c ->
+        val søk = dataSource.medLåstNavIdent(domene, navIdent) { c ->
             val søk = repository.hentAktiv(c, domene, navIdent, id, utløpsgrense) ?: throw LagredeSøkFeil.IkkeFunnet()
             val alleredeBruktIdag = !søk.sistAktiv.isBefore(idag)
-            if (alleredeBruktIdag) return@use søk
+            if (alleredeBruktIdag) return@medLåstNavIdent søk
             val oppdatert = repository.oppdaterSistAktiv(c, domene, navIdent, id, idag, utløpsgrense)
             if (oppdatert == 0) throw LagredeSøkFeil.IkkeFunnet()
             søk.copy(sistAktiv = idag)
@@ -111,11 +109,21 @@ class LagredeSøkService(
         return søk.tilDto(domene, idag)
     }
 
-    fun slettUtløpte(): Map<LagredeSøkDomene, Int> {
+    /**
+     * Hvert domene ryddes for seg, så en feil i ett domene ikke stopper de andre.
+     * `READ COMMITTED` gjør at jobben kan kjøre samtidig på flere pods: sletter to pods samme rad,
+     * hopper den siste over raden i stedet for å feile med `40001`, som den ville gjort under `REPEATABLE READ`.
+     */
+    fun slettUtløpte(): Map<LagredeSøkDomene, Result<Int>> {
         val utløpsgrense = Utløpsregler.sisteUtløpteSistAktiv(idag())
         return LagredeSøkDomene.entries.associateWith { domene ->
-            dataSource.connection.use { c -> repository.slettUtløpte(c, domene, utløpsgrense) }
-                .also { metrikker.slettet(domene, Sletteårsak.UTLØP, it) }
+            try {
+                val antall = dataSource.iTransaksjon { c -> repository.slettUtløpte(c, domene, utløpsgrense) }
+                metrikker.slettet(domene, Sletteårsak.UTLØP, antall)
+                Result.success(antall)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
     }
 

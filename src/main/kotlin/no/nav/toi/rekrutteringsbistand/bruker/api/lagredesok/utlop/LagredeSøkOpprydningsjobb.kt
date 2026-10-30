@@ -44,11 +44,17 @@ class LagredeSøkOpprydningsjobb(
 
     fun kjør() {
         try {
-            val slettet = service.slettUtløpte()
-            metrikker.opprydningVellykket()
-            slettet.forEach { (domene, antall) ->
-                log.info("Opprydning av lagrede søk: slettet $antall utløpte søk for ${domene.stinavn}")
+            val resultater = service.slettUtløpte()
+            resultater.forEach { (domene, resultat) ->
+                resultat
+                    .onSuccess { antall ->
+                        log.info("Opprydning av lagrede søk: slettet $antall utløpte søk for ${domene.stinavn}")
+                    }
+                    .onFailure { e ->
+                        log.error("Opprydning av lagrede søk feilet for ${domene.stinavn}", FeilUtenMelding(e))
+                    }
             }
+            if (resultater.values.all { it.isSuccess }) metrikker.opprydningVellykket() else metrikker.opprydningFeilet()
         } catch (e: Exception) {
             metrikker.opprydningFeilet()
             log.error("Opprydning av lagrede søk feilet", FeilUtenMelding(e))

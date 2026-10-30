@@ -6,6 +6,7 @@ import no.nav.toi.rekrutteringsbistand.bruker.api.kobleLagredeSøkOpprydningsjob
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.LagredeSøkMetrikker
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.LagredeSøkService
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.database.LagredeSøkRepository
+import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.domene.LagredeSøkDomene
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.lang.reflect.Proxy
@@ -21,13 +22,13 @@ class LagredeSøkOpprydningsjobbTest {
 
     @Test
     fun `start er idempotent og close stanser fremtidige kjøringer`() {
-        val kjøringer = AtomicInteger()
+        val tilkoblinger = AtomicInteger()
         val førsteKjøring = CountDownLatch(1)
         val andreKjøring = CountDownLatch(1)
         val jobb = nyJobb(Duration.ofMillis(25), Duration.ofMillis(250)) {
-            when (kjøringer.incrementAndGet()) {
+            when (tilkoblinger.incrementAndGet()) {
                 1 -> førsteKjøring.countDown()
-                2 -> andreKjøring.countDown()
+                antallDomener + 1 -> andreKjøring.countDown()
             }
         }
 
@@ -43,7 +44,7 @@ class LagredeSøkOpprydningsjobbTest {
             jobb.start()
 
             assertThat(andreKjøring.await(400, TimeUnit.MILLISECONDS)).isFalse()
-            assertThat(kjøringer.get()).isEqualTo(1)
+            assertThat(tilkoblinger.get()).isEqualTo(antallDomener)
         } finally {
             jobb.close()
         }
@@ -75,13 +76,29 @@ class LagredeSøkOpprydningsjobbTest {
         }
     }
 
+    @Test
+    fun `feil i ett domene stopper ikke opprydningen i de andre, og kjøringen telles som feilet`() {
+        val tilkoblinger = AtomicInteger()
+        val registry = SimpleMeterRegistry()
+        val jobb = nyJobb(Duration.ofDays(1), Duration.ofDays(1), registry) { tilkoblinger.incrementAndGet() }
+
+        jobb.use { it.kjør() }
+
+        assertThat(tilkoblinger.get()).isEqualTo(antallDomener)
+        assertThat(registry.find("lagrede.sok.opprydning.feil").counter()?.count()).isEqualTo(1.0)
+        assertThat(registry.find("lagrede.sok.opprydning.sist.vellykket.sekunder").gauge()?.value() ?: 0.0).isZero()
+    }
+
+    private val antallDomener = LagredeSøkDomene.entries.size
+
     private fun nyJobb(
         forsinkelse: Duration,
         intervall: Duration,
+        registry: SimpleMeterRegistry = SimpleMeterRegistry(),
         vedTilkobling: () -> Unit,
     ): LagredeSøkOpprydningsjobb {
         val klokke = Clock.systemUTC()
-        val metrikker = LagredeSøkMetrikker(SimpleMeterRegistry(), klokke)
+        val metrikker = LagredeSøkMetrikker(registry, klokke)
         val dataSource = Proxy.newProxyInstance(
             LagredeSøkOpprydningsjobbTest::class.java.classLoader,
             arrayOf(DataSource::class.java),

@@ -388,6 +388,46 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
     }
 
     @Test
+    fun `samtidige valg av vanlig søk og lagrede søk gir høyst ett standardsøk`() {
+        val navIdent = nyIdent()
+        val ider = (1..3).map { settInn(navIdent, "Søk $it", idag.minusDays(3)) }
+        val forespørsler = (1..20).map {
+            if (it % 2 == 0) velgVanligSøkForespørsel(navIdent) else settStandardForespørsel(navIdent, ider[it % ider.size])
+        }
+
+        assertThat(sendSamtidig(forespørsler)).containsOnly(204)
+        assertThat(antallIDatabasen(navIdent, kunStandard = true)).isLessThanOrEqualTo(1)
+    }
+
+    @Test
+    fun `samtidig bruk av samme søk gir 200 på alle kall og fornyer fristen`() {
+        val navIdent = nyIdent()
+        val søk = settInn(navIdent, "Søk", idag.minusDays(3))
+        val forespørsler = (1..10).map {
+            forespørsel("$endepunkt/$søk/bruk", navIdent).POST(HttpRequest.BodyPublishers.noBody()).build()
+        }
+
+        assertThat(sendSamtidig(forespørsler)).containsOnly(200)
+        assertThat(radIDatabasen(søk)!!.sistAktiv).isEqualTo(idag)
+    }
+
+    @Test
+    fun `samtidig erstatting og sletting av samme søk gir ingen serverfeil`() {
+        val navIdent = nyIdent()
+        val søk = settInn(navIdent, "Søk", idag.minusDays(3))
+        val forespørsler = (1..10).map {
+            if (it % 5 == 0) {
+                forespørsel("$endepunkt/$søk", navIdent).DELETE().build()
+            } else {
+                forespørsel("$endepunkt/$søk", navIdent)
+                    .PUT(HttpRequest.BodyPublishers.ofString(body("Nytt navn $it", filtre.first))).build()
+            }
+        }
+
+        assertThat(sendSamtidig(forespørsler)).allMatch { it in setOf(200, 204, 404) }
+    }
+
+    @Test
     fun `navn på 25 tegn godtas, 26 tegn gir 400`() {
         val navIdent = nyIdent()
         val søk = opprett(navIdent, "a".repeat(25))
@@ -506,12 +546,22 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
     }
 
     @Test
-    fun `utløpte søk teller ikke mot grensen og slettes når et nytt søk lagres`() {
+    fun `utløpte søk teller ikke mot grensen, og bare opprydningsjobben sletter dem`() {
         val navIdent = nyIdent()
-        settInn(navIdent, "Utløpt standard", utløptDato, erStandard = true)
+        val utløptStandard = settInn(navIdent, "Utløpt standard", utløptDato, erStandard = true)
         repeat(MAKS_ANTALL_SØK - 1) { settInn(navIdent, "Utløpt $it", utløptDato) }
+        val slettetFør = slettedeUtløpte()
 
-        opprett(navIdent, "Nytt")
+        val nytt = opprett(navIdent, "Nytt")
+        assertThat(slett(navIdent, nytt.id).statusCode()).isEqualTo(204)
+        opprett(navIdent, "Nytt igjen")
+
+        assertThat(hent(navIdent).map { it.navn }).containsExactly("Nytt igjen")
+        assertThat(antallIDatabasen(navIdent)).isEqualTo(MAKS_ANTALL_SØK + 1)
+        assertThat(radIDatabasen(utløptStandard)).isEqualTo(Rad(erStandard = true, sistAktiv = utløptDato))
+        assertThat(slettedeUtløpte()).isEqualTo(slettetFør)
+
+        appCtx.lagredeSøkOpprydningsjobb.kjør()
 
         assertThat(antallIDatabasen(navIdent)).isEqualTo(1)
     }
@@ -577,6 +627,18 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
         assertThat(standardValgt("vanlig_sok")).isEqualTo(før + 1)
         assertThat(send(velgVanligSøkForespørsel(nyIdent())).statusCode()).isEqualTo(204)
         assertThat(standardValgt("vanlig_sok")).isEqualTo(før + 1)
+    }
+
+    @Test
+    fun `å velge vanlig søk når standardsøket er utløpt telles ikke, fordi vanlig søk allerede er standard`() {
+        val navIdent = nyIdent()
+        val utløpt = settInn(navIdent, "Utløpt standard", utløptDato, erStandard = true)
+        val før = standardValgt("vanlig_sok")
+
+        assertThat(send(velgVanligSøkForespørsel(navIdent)).statusCode()).isEqualTo(204)
+
+        assertThat(standardValgt("vanlig_sok")).isEqualTo(før)
+        assertThat(radIDatabasen(utløpt)!!.erStandard).isFalse()
     }
 
     @Test

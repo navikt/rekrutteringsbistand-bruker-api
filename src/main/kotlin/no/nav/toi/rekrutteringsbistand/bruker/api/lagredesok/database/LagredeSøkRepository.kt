@@ -37,10 +37,13 @@ class LagredeSøkRepository {
             ps.executeQuery().use { rs -> if (rs.next()) rs.tilLagretSøk() else null }
         }
 
-    fun antall(c: Connection, domene: LagredeSøkDomene, navIdent: String): Int =
-        c.prepareStatement("SELECT count(*) FROM lagrede_sok WHERE domene = ? AND navIdent = ?").use { ps ->
+    fun antallAktive(c: Connection, domene: LagredeSøkDomene, navIdent: String, utløpsgrense: LocalDate): Int =
+        c.prepareStatement(
+            "SELECT count(*) FROM lagrede_sok WHERE domene = ? AND navIdent = ? AND sistAktiv > ?"
+        ).use { ps ->
             ps.setString(1, domene.stinavn)
             ps.setString(2, navIdent)
+            ps.setObject(3, utløpsgrense)
             ps.executeQuery().use { rs -> rs.next(); rs.getInt(1) }
         }
 
@@ -88,10 +91,14 @@ class LagredeSøkRepository {
             ps.executeQuery().use { rs -> if (rs.next()) rs.tilLagretSøk() else null }
         }
 
-    fun hentStandardId(c: Connection, domene: LagredeSøkDomene, navIdent: String): UUID? =
-        c.prepareStatement("SELECT id FROM lagrede_sok WHERE domene = ? AND navIdent = ? AND erStandard").use { ps ->
+    /** Et utløpt søk med standardmerke regnes ikke som standard, i tråd med [hentAktive]. */
+    fun hentStandardId(c: Connection, domene: LagredeSøkDomene, navIdent: String, utløpsgrense: LocalDate): UUID? =
+        c.prepareStatement(
+            "SELECT id FROM lagrede_sok WHERE domene = ? AND navIdent = ? AND erStandard AND sistAktiv > ?"
+        ).use { ps ->
             ps.setString(1, domene.stinavn)
             ps.setString(2, navIdent)
+            ps.setObject(3, utløpsgrense)
             ps.executeQuery().use { rs -> if (rs.next()) rs.getObject(1, UUID::class.java) else null }
         }
 
@@ -153,14 +160,6 @@ class LagredeSøkRepository {
             ps.setObject(2, id)
             ps.setString(3, navIdent)
             ps.setObject(4, utløpsgrense)
-            ps.executeUpdate()
-        }
-
-    fun slettUtløpteForNavIdent(c: Connection, domene: LagredeSøkDomene, navIdent: String, utløpsgrense: LocalDate): Int =
-        c.prepareStatement("DELETE FROM lagrede_sok WHERE domene = ? AND navIdent = ? AND sistAktiv <= ?").use { ps ->
-            ps.setString(1, domene.stinavn)
-            ps.setString(2, navIdent)
-            ps.setObject(3, utløpsgrense)
             ps.executeUpdate()
         }
 
