@@ -24,13 +24,7 @@ class NyheterController(
     }
 
     private fun hentNyheter(ctx: Context) {
-        ctx.autentisertNavBruker().verifiserAutorisasjon(
-            NavAnsattRolle.ARBEIDSGIVER_RETTET,
-            NavAnsattRolle.UTVIKLER,
-            NavAnsattRolle.JOBBSOKER_RETTET,
-            NavAnsattRolle.MODIA_OPPFOLGING,
-            NavAnsattRolle.MODIA_GENERELL_TILGANG
-        )
+        ctx.autentisertNavBruker().verifiserHarEnRolle()
 
         log.info("Henter nyheter")
         ctx.json(nyheterRepository.hentNyheter()

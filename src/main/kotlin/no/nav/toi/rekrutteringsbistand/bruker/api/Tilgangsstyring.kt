@@ -10,8 +10,9 @@ class Tilgangsstyring {
                routeRoles: Set<RouteRole>,
                autentiseringskonfigurasjoner: List<Autentiseringskonfigurasjon>,
                rolleUuidSpesifikasjon: RolleUuidSpesifikasjon) {
-        require(routeRoles.size == 1) { "Støtter kun bruk av en rolle per endepunkt." }
-        require(routeRoles.first() is Tilgangsrolle) { "Ukonfigurert rolle" }
+        // Et endepunkt uten rolle er en konfigurasjonsfeil og gir 500, ikke åpen tilgang.
+        check(routeRoles.size == 1) { "Hvert endepunkt må ha nøyaktig én rolle." }
+        check(routeRoles.first() is Tilgangsrolle) { "Ukonfigurert rolle" }
         val rolle = routeRoles.first() as Tilgangsrolle
 
         if (rolle == Tilgangsrolle.UBESKYTTET) {

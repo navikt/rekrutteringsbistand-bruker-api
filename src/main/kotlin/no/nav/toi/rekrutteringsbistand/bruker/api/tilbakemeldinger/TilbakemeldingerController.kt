@@ -43,13 +43,7 @@ class TilbakemeldingerController(
     }
 
     private fun opprettTilbakemelding(ctx: Context) {
-        ctx.autentisertNavBruker().verifiserAutorisasjon(
-            NavAnsattRolle.ARBEIDSGIVER_RETTET,
-            NavAnsattRolle.UTVIKLER,
-            NavAnsattRolle.JOBBSOKER_RETTET,
-            NavAnsattRolle.MODIA_OPPFOLGING,
-            NavAnsattRolle.MODIA_GENERELL_TILGANG
-        )
+        ctx.autentisertNavBruker().verifiserHarEnRolle()
 
         val request = objectMapper.readValue(ctx.body(), TilbakemeldingOpprettRequest::class.java)
         val tilbakemelding = tilbakemeldingerRepository.opprett(request.tilTilbakemelding())

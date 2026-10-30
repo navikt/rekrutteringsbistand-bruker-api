@@ -17,6 +17,13 @@ import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.Tilbakemeldin
 import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.TilbakemeldingerRepository
 import no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger.BrukerinnstillingerController
 import no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger.BrukerinnstillingerRepository
+import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.LagredeSøkController
+import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.LagredeSøkMetrikker
+import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.utlop.LagredeSøkOpprydningsjobb
+import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.database.LagredeSøkRepository
+import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.LagredeSøkService
+import java.time.Clock
+import java.time.ZoneId
 import java.util.*
 import javax.sql.DataSource
 
@@ -48,6 +55,12 @@ open class ApplicationContext(envInn: Map<String, String>) {
 
     val brukerinnstillingerRepository = BrukerinnstillingerRepository(dataSource)
     val brukerinnstillingerController = BrukerinnstillingerController(JacksonConfig.objectMapper, brukerinnstillingerRepository)
+
+    val klokke: Clock = Clock.system(ZoneId.of("Europe/Oslo"))
+    val lagredeSøkMetrikker = LagredeSøkMetrikker(prometheusRegistry, klokke)
+    val lagredeSøkService = LagredeSøkService(dataSource, LagredeSøkRepository(), lagredeSøkMetrikker, klokke)
+    val lagredeSøkController = LagredeSøkController(JacksonConfig.objectMapper, lagredeSøkService)
+    val lagredeSøkOpprydningsjobb = LagredeSøkOpprydningsjobb(lagredeSøkService, lagredeSøkMetrikker)
 
     val tilgangsstyring = Tilgangsstyring()
 
