@@ -24,11 +24,11 @@ class LagredeSøkService(
         val idag = idag()
         val utløpsgrense = Utløpsregler.sisteUtløpteSistAktiv(idag)
         val søk = dataSource.connection.use { c -> repository.hentAktive(c, domene, navIdent, utløpsgrense) }
-        val collator = Collator.getInstance(Locale.forLanguageTag("nb-NO"))
+        val norskNavnesortering = Collator.getInstance(Locale.forLanguageTag("nb-NO"))
         return søk
             .sortedWith(
                 compareByDescending<LagretSøk> { it.erStandard }
-                    .thenComparing({ it.navn }, collator)
+                    .thenComparing({ it.navn }, norskNavnesortering)
                     .thenBy { it.id },
             )
             .map { it.tilDto(domene, idag) }
