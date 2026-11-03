@@ -11,7 +11,7 @@ class Tilgangsstyring {
                autentiseringskonfigurasjoner: List<Autentiseringskonfigurasjon>,
                rolleUuidSpesifikasjon: RolleUuidSpesifikasjon) {
         // Et endepunkt uten rolle er en konfigurasjonsfeil og gir 500, ikke åpen tilgang.
-        check(routeRoles.size == 1) { "Hvert endepunkt må ha nøyaktig én rolle." }
+        check(routeRoles.size == 1) { "Hvert endepunkt må være enten beskyttet eller ubeskyttet." }
         check(routeRoles.first() is Tilgangsrolle) { "Ukonfigurert rolle" }
         val rolle = routeRoles.first() as Tilgangsrolle
 
