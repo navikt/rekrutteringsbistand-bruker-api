@@ -62,6 +62,8 @@ class AutentisertNavBruker(
         }
     }
 
+    fun verifiserHarEnRolle() = verifiserAutorisasjon(*NavAnsattRolle.entries.toTypedArray())
+
     fun erEnAvRollene(vararg gyldigeRoller: NavAnsattRolle) = roller.any { it in (gyldigeRoller.toList() + NavAnsattRolle.UTVIKLER) }
     fun hentNavIdent() = navIdent
 }

@@ -3,7 +3,6 @@ package no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger
 import io.javalin.apibuilder.ApiBuilder.get
 import io.javalin.apibuilder.ApiBuilder.put
 import io.javalin.http.Context
-import no.nav.toi.rekrutteringsbistand.bruker.api.NavAnsattRolle
 import no.nav.toi.rekrutteringsbistand.bruker.api.Tilgangsrolle
 import no.nav.toi.rekrutteringsbistand.bruker.api.autentisertNavBruker
 import tools.jackson.databind.ObjectMapper
@@ -42,13 +41,7 @@ class BrukerinnstillingerController(
 
     private fun hentAutorisertNavIdent(ctx: Context): String {
         val bruker = ctx.autentisertNavBruker()
-        bruker.verifiserAutorisasjon(
-            NavAnsattRolle.ARBEIDSGIVER_RETTET,
-            NavAnsattRolle.UTVIKLER,
-            NavAnsattRolle.JOBBSOKER_RETTET,
-            NavAnsattRolle.MODIA_OPPFOLGING,
-            NavAnsattRolle.MODIA_GENERELL_TILGANG,
-        )
+        bruker.verifiserHarEnRolle()
         return bruker.hentNavIdent()
     }
 }
