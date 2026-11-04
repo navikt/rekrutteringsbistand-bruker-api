@@ -437,6 +437,18 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
     }
 
     @Test
+    fun `søkeord på grensen godtas, ett søkeord eller ett tegn over gir 400`() {
+        val navIdent = nyIdent()
+        val tjueOrd = (1..MAKS_ANTALL_SØKEORD).map { "ord$it" }
+        val fireHundreTegn = listOf("a".repeat(200), "b".repeat(200))
+
+        assertThat(send(opprettForespørsel(navIdent, "Tjue ord", fritekst = tjueOrd)).statusCode()).isIn(200, 201)
+        assertThat(send(opprettForespørsel(navIdent, "Fire hundre tegn", fritekst = fireHundreTegn)).statusCode()).isIn(200, 201)
+        assertThat(send(opprettForespørsel(navIdent, "For mange", fritekst = tjueOrd + "ord21")).statusCode()).isEqualTo(400)
+        assertThat(send(opprettForespørsel(navIdent, "For lange", fritekst = fireHundreTegn + "c")).statusCode()).isEqualTo(400)
+    }
+
+    @Test
     fun `ugyldig input gir 400 uten innholdet i svaret`() {
         val navIdent = nyIdent()
         val hemmelig = "hemmeligverdi"
@@ -445,7 +457,7 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
         assertThat(ukjentParameter.statusCode()).isEqualTo(400)
         assertThat(ukjentParameter.body()).doesNotContain(hemmelig)
 
-        val forMangeSøkeord = send(opprettForespørsel(navIdent, "Søk", fritekst = (1..11).map { "$hemmelig$it" }))
+        val forMangeSøkeord = send(opprettForespørsel(navIdent, "Søk", fritekst = (1..MAKS_ANTALL_SØKEORD + 1).map { "$hemmelig$it" }))
         assertThat(forMangeSøkeord.statusCode()).isEqualTo(400)
         assertThat(forMangeSøkeord.body()).doesNotContain(hemmelig)
 
