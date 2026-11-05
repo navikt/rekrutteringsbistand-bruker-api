@@ -8,8 +8,8 @@ import java.util.UUID
 const val MAKS_ANTALL_SØK = 10
 const val MAKS_NAVNELENGDE = 25
 const val MAKS_FILTERLENGDE = 2000
-const val MAKS_ANTALL_SØKEORD = 10
-const val MAKS_SØKEORDLENGDE_TOTALT = 200
+const val MAKS_ANTALL_SØKEORD = 20
+const val MAKS_SØKEORDLENGDE_TOTALT = 400
 
 data class LagreSøkDto(
     val navn: String? = null,

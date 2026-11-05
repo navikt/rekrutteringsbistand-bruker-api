@@ -22,10 +22,6 @@ enum class LagredeSøkDomene(
         stinavn = "stilling",
         filterregler = filterreglerFor<StillingFilterparameter>(),
     ),
-    ETTERREGISTRERING(
-        stinavn = "etterregistrering",
-        filterregler = filterreglerFor<EtterregistreringFilterparameter>(),
-    ),
     ;
 
     override fun toString() = stinavn

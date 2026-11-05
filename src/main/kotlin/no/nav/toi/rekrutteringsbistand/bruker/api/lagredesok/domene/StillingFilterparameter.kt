@@ -9,7 +9,10 @@ import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.filter.liste
 
 /**
  * Verdiene følger stillingssøket i frontend. Parametere som ikke beskriver selve søket,
- * som `fritekst`, `side`, `brukStandardsok`, `modal` og `utenOppdrag`, lagres ikke.
+ * som `fritekst`, `side`, `brukStandardsok` og `modal`, lagres ikke.
+ *
+ * `utenOppdrag=true` betyr at «Med oppdrag» er slått av på fanen arbeidsplassen.no. Frontend sender den bare
+ * sammen med `portefolje=arbeidsplassen`. Vi sjekker ikke kombinasjonen, fordi parameteren ikke påvirker andre faner.
  */
 enum class StillingFilterparameter(
     override val navn: String,
@@ -51,4 +54,5 @@ enum class StillingFilterparameter(
     ),
     FYLKER("fylker", fylkesnumre),
     KOMMUNER("kommuner", kommunenumre),
+    UTEN_OPPDRAG("utenOppdrag", enAv("true")),
 }
