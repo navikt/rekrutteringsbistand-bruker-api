@@ -83,6 +83,12 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
     protected fun erstatt(navIdent: String, id: UUID, navn: String, filter: String = "", fritekst: List<String> = emptyList()) =
         send(forespørsel("$endepunkt/$id", navIdent).PUT(HttpRequest.BodyPublishers.ofString(body(navn, filter, fritekst))).build())
 
+    protected fun endreNavnForespørsel(navIdent: String, id: UUID, body: String) =
+        forespørsel("$endepunkt/$id/navn", navIdent).PUT(HttpRequest.BodyPublishers.ofString(body)).build()
+
+    protected fun endreNavn(navIdent: String, id: UUID, navn: String) =
+        send(endreNavnForespørsel(navIdent, id, objectMapper.writeValueAsString(NyttNavnDto(navn))))
+
     protected fun settStandardForespørsel(navIdent: String, id: UUID) =
         forespørsel("$endepunkt/$id/standard", navIdent).PUT(HttpRequest.BodyPublishers.noBody()).build()
 
@@ -282,20 +288,47 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
     }
 
     @Test
-    fun `erstatting med samme filter og søkeord telles som nytt navn`() {
+    fun `nytt navn endrer bare navnet, fornyer fristen og beholder standardvalget`() {
         val navIdent = nyIdent()
-        val søk = opprett(navIdent, "Gammelt navn", gyldigFilter, listOf("lager"))
+        val id = settInn(navIdent, "Gammelt navn", idag.minusMonths(2), erStandard = true, filter = gyldigFilter)
+
+        val respons = endreNavn(navIdent, id, "  Nytt navn  ")
+        assertThat(respons.statusCode()).isEqualTo(200)
+        val oppdatert = objectMapper.readValue(respons.body(), LagretSøkDto::class.java)
+
+        assertThat(oppdatert.navn).isEqualTo("Nytt navn")
+        assertThat(oppdatert.filter).isEqualTo(gyldigFilter)
+        assertThat(oppdatert.sistAktiv).isEqualTo(idag)
+        assertThat(oppdatert.erStandard).isTrue()
+        assertThat(hent(navIdent).single()).isEqualTo(oppdatert)
+    }
+
+    @Test
+    fun `nytt navn etter erstatting i en annen fane beholder det nye innholdet`() {
+        val navIdent = nyIdent()
+        val søk = opprett(navIdent, "Lager", gyldigFilter, listOf("lager"))
+        assertThat(erstatt(navIdent, søk.id, "Lager", annetGyldigFilter, listOf("truck")).statusCode()).isEqualTo(200)
+
+        assertThat(endreNavn(navIdent, søk.id, "Truck").statusCode()).isEqualTo(200)
+
+        val lagret = hent(navIdent).single()
+        assertThat(lagret.navn).isEqualTo("Truck")
+        assertThat(lagret.filter).isEqualTo(annetGyldigFilter)
+        assertThat(lagret.fritekst).containsExactly("truck")
+    }
+
+    @Test
+    fun `nytt navn og erstatting telles hver for seg`() {
+        val navIdent = nyIdent()
+        val søk = opprett(navIdent, "Gammelt navn", gyldigFilter)
         val nyttNavnFør = lagret("nytt_navn")
         val erstattetFør = lagret("erstattet")
 
-        assertThat(erstatt(navIdent, søk.id, "Nytt navn", gyldigFilter, listOf("lager")).statusCode()).isEqualTo(200)
-        assertThat(lagret("nytt_navn")).isEqualTo(nyttNavnFør + 1)
-        assertThat(lagret("erstattet")).isEqualTo(erstattetFør)
+        assertThat(endreNavn(navIdent, søk.id, "Nytt navn").statusCode()).isEqualTo(200)
+        assertThat(erstatt(navIdent, søk.id, "Nytt navn", annetGyldigFilter).statusCode()).isEqualTo(200)
 
-        assertThat(erstatt(navIdent, søk.id, "Nytt navn", gyldigFilter, listOf("truck")).statusCode()).isEqualTo(200)
-        assertThat(erstatt(navIdent, søk.id, "Nytt navn", annetGyldigFilter, listOf("truck")).statusCode()).isEqualTo(200)
         assertThat(lagret("nytt_navn")).isEqualTo(nyttNavnFør + 1)
-        assertThat(lagret("erstattet")).isEqualTo(erstattetFør + 2)
+        assertThat(lagret("erstattet")).isEqualTo(erstattetFør + 1)
     }
 
     @Test
@@ -357,6 +390,7 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
 
         assertThat(hent(annen)).isEmpty()
         assertThat(erstatt(annen, søk.id, "Overtatt").statusCode()).isEqualTo(404)
+        assertThat(endreNavn(annen, søk.id, "Overtatt").statusCode()).isEqualTo(404)
         assertThat(slett(annen, søk.id).statusCode()).isEqualTo(404)
         assertThat(send(settStandardForespørsel(annen, søk.id)).statusCode()).isEqualTo(404)
         assertThat(bruk(annen, søk.id).statusCode()).isEqualTo(404)
@@ -459,7 +493,10 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
         val søk = opprett(navIdent, "a".repeat(25))
         assertThat(send(opprettForespørsel(navIdent, "a".repeat(26))).statusCode()).isEqualTo(400)
         assertThat(erstatt(navIdent, søk.id, "a".repeat(26)).statusCode()).isEqualTo(400)
+        assertThat(endreNavn(navIdent, søk.id, "a".repeat(26)).statusCode()).isEqualTo(400)
         assertThat(send(opprettForespørsel(navIdent, "  ")).statusCode()).isEqualTo(400)
+        assertThat(endreNavn(navIdent, søk.id, "  ").statusCode()).isEqualTo(400)
+        assertThat(hent(navIdent).single().navn).isEqualTo("a".repeat(25))
     }
 
     @Test
@@ -494,6 +531,11 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
         val feilType = send(forespørsel(endepunkt, navIdent).POST(HttpRequest.BodyPublishers.ofString("{\"fritekst\": {\"$hemmelig\": 1}}")).build())
         assertThat(feilType.statusCode()).isEqualTo(400)
         assertThat(feilType.body()).doesNotContain(hemmelig)
+
+        val søk = opprett(navIdent, "Søk")
+        val ugyldigNavnJson = send(endreNavnForespørsel(navIdent, søk.id, "{\"navn\": [\"$hemmelig\""))
+        assertThat(ugyldigNavnJson.statusCode()).isEqualTo(400)
+        assertThat(ugyldigNavnJson.body()).doesNotContain(hemmelig)
     }
 
     @Test
@@ -528,7 +570,20 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
     }
 
     @Test
-    fun `søk med filtre som er tatt ut av søket, kan hentes, brukes og få nytt navn`() {
+    fun `fødselsnummer i nytt navn gir 400 uten innholdet i svaret, og navnet er uendret`() {
+        val navIdent = nyIdent()
+        val søk = opprett(navIdent, "Før")
+
+        listOf(syntetiskNummer, "Treff $syntetiskNummer").forEach { navn ->
+            val respons = endreNavn(navIdent, søk.id, navn)
+            assertThat(respons.statusCode()).describedAs(navn).isEqualTo(400)
+            assertThat(respons.body()).describedAs(navn).doesNotContain(syntetiskNummer)
+        }
+        assertThat(hent(navIdent).single().navn).isEqualTo("Før")
+    }
+
+    @Test
+    fun `søk med filtre som er tatt ut av søket, kan hentes, brukes, få nytt navn og erstattes`() {
         val navIdent = nyIdent()
         val id = settInn(navIdent, "Gammelt søk", idag, filter = "fjernet=gammel&${gyldigFilter}")
 
@@ -536,9 +591,11 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
         val brukt = objectMapper.readValue(bruk(navIdent, id).body(), LagretSøkDto::class.java)
         assertThat(brukt.filter).isEqualTo(gyldigFilter)
 
-        val respons = erstatt(navIdent, id, "Nytt navn", brukt.filter)
-        assertThat(respons.statusCode()).isEqualTo(200)
+        assertThat(endreNavn(navIdent, id, "Nytt navn").statusCode()).isEqualTo(200)
         assertThat(hent(navIdent).single()).extracting("navn", "filter").containsExactly("Nytt navn", gyldigFilter)
+
+        assertThat(erstatt(navIdent, id, "Erstattet", brukt.filter).statusCode()).isEqualTo(200)
+        assertThat(hent(navIdent).single()).extracting("navn", "filter").containsExactly("Erstattet", gyldigFilter)
     }
 
     @Test
@@ -578,6 +635,7 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
         assertThat(hent(navIdent)).isEmpty()
         assertThat(bruk(navIdent, utløpt).statusCode()).isEqualTo(404)
         assertThat(erstatt(navIdent, utløpt, "Nytt liv").statusCode()).isEqualTo(404)
+        assertThat(endreNavn(navIdent, utløpt, "Nytt liv").statusCode()).isEqualTo(404)
         assertThat(send(settStandardForespørsel(navIdent, utløpt)).statusCode()).isEqualTo(404)
         assertThat(slett(navIdent, utløpt).statusCode()).isEqualTo(404)
         assertThat(radIDatabasen(utløpt)!!.sistAktiv).isEqualTo(utløptDato)
@@ -774,6 +832,7 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
         assertThat(hent(navIdent)).isEmpty()
         andreSøk.values.forEach { id ->
             assertThat(erstatt(navIdent, id, "Overtatt").statusCode()).isEqualTo(404)
+            assertThat(endreNavn(navIdent, id, "Overtatt").statusCode()).isEqualTo(404)
             assertThat(send(settStandardForespørsel(navIdent, id)).statusCode()).isEqualTo(404)
             assertThat(bruk(navIdent, id).statusCode()).isEqualTo(404)
             assertThat(slett(navIdent, id).statusCode()).isEqualTo(404)
