@@ -33,6 +33,7 @@ class LagredeSøkMetrikker(private val registry: MeterRegistry, private val cloc
 enum class Lagringstype(val label: String) {
     OPPRETTET("opprettet"),
     ERSTATTET("erstattet"),
+    NYTT_NAVN("nytt_navn"),
 }
 
 enum class Sletteårsak(val label: String) {

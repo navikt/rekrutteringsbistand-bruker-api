@@ -156,6 +156,11 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
 
     protected val utløptDato get() = Utløpsregler.sisteUtløpteSistAktiv(idag)
 
+    protected fun lagret(type: String): Double =
+        appCtx.prometheusRegistry.find("lagrede.sok.lagret")
+            .tags("domene", domene.stinavn, "type", type)
+            .counter()?.count() ?: 0.0
+
     protected fun slettedeUtløpte(): Double =
         appCtx.prometheusRegistry.find("lagrede.sok.slettet")
             .tags("domene", domene.stinavn, "arsak", "utlop")
@@ -274,6 +279,23 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
         assertThat(oppdatert.sistAktiv).isEqualTo(idag)
         assertThat(oppdatert.erStandard).isFalse()
         assertThat(radIDatabasen(standard)!!.erStandard).isTrue()
+    }
+
+    @Test
+    fun `erstatting med samme filter og søkeord telles som nytt navn`() {
+        val navIdent = nyIdent()
+        val søk = opprett(navIdent, "Gammelt navn", gyldigFilter, listOf("lager"))
+        val nyttNavnFør = lagret("nytt_navn")
+        val erstattetFør = lagret("erstattet")
+
+        assertThat(erstatt(navIdent, søk.id, "Nytt navn", gyldigFilter, listOf("lager")).statusCode()).isEqualTo(200)
+        assertThat(lagret("nytt_navn")).isEqualTo(nyttNavnFør + 1)
+        assertThat(lagret("erstattet")).isEqualTo(erstattetFør)
+
+        assertThat(erstatt(navIdent, søk.id, "Nytt navn", gyldigFilter, listOf("truck")).statusCode()).isEqualTo(200)
+        assertThat(erstatt(navIdent, søk.id, "Nytt navn", annetGyldigFilter, listOf("truck")).statusCode()).isEqualTo(200)
+        assertThat(lagret("nytt_navn")).isEqualTo(nyttNavnFør + 1)
+        assertThat(lagret("erstattet")).isEqualTo(erstattetFør + 2)
     }
 
     @Test

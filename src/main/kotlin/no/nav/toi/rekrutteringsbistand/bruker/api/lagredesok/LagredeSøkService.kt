@@ -57,13 +57,25 @@ class LagredeSøkService(
         return søk.tilDto(domene, idag)
     }
 
+    /**
+     * Erstatter navn, filter og søkeord. Har søket samme filter og søkeord som før, har veilederen bare gitt det nytt
+     * navn, og det telles for seg. Filteret sammenlignes etter rensing, fordi frontend sender det rensede filteret.
+     */
     fun erstatt(domene: LagredeSøkDomene, navIdent: String, id: UUID, input: GyldigLagreSøkInput): LagretSøkDto {
         val idag = idag()
         val utløpsgrense = Utløpsregler.sisteUtløpteSistAktiv(idag)
-        val søk = dataSource.medLåstNavIdent(domene, navIdent) { c ->
-            repository.erstatt(c, domene, navIdent, id, input, idag, utløpsgrense)
-        } ?: throw LagredeSøkFeil.IkkeFunnet()
-        metrikker.lagret(domene, Lagringstype.ERSTATTET)
+        val (søk, type) = dataSource.medLåstNavIdent(domene, navIdent) { c ->
+            val forrige = repository.hentAktiv(c, domene, navIdent, id, utløpsgrense) ?: throw LagredeSøkFeil.IkkeFunnet()
+            val type = if (domene.filterregler.rens(forrige.filter) == input.filter && forrige.fritekst == input.fritekst) {
+                Lagringstype.NYTT_NAVN
+            } else {
+                Lagringstype.ERSTATTET
+            }
+            val søk = repository.erstatt(c, domene, navIdent, id, input, idag, utløpsgrense)
+                ?: throw LagredeSøkFeil.IkkeFunnet()
+            søk to type
+        }
+        metrikker.lagret(domene, type)
         return søk.tilDto(domene, idag)
     }
 
