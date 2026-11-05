@@ -31,3 +31,48 @@ private val firesifret = Regex("""\d{4}""")
 internal val fylkesnumre = liste { tosifret.matches(it) }
 internal val kommunenumre = liste { firesifret.matches(it) }
 internal val kontornumre = liste { firesifret.matches(it) }
+
+private const val MAKS_FRI_VERDILENGDE = 100
+
+/**
+ * nuqs koder komma i en listeverdi som `%2C`, så det står igjen etter at filteret er dekodet én gang. Dette er den
+ * eneste kodingen inne i en verdi som frontend lager, og den eneste vi gjør om før sjekkene.
+ */
+private fun somIFrontend(element: String) = element.replace("%2C", ",", ignoreCase = true)
+
+/** Sjekker også med komma som mellomrom, fordi et komma kan skille fødselsdatoen fra personnummeret. */
+private fun liknerFødselsnummer(tekst: String) =
+    Fødselsnummersjekk.inneholderFødselsnummer(tekst) ||
+        Fødselsnummersjekk.inneholderFødselsnummer(tekst.replace(',', ' '))
+
+/** Tekst veilederen har skrevet eller valgt fra forslag: 1 til 100 tegn og ingenting som ligner et fødselsnummer. */
+private val friVerdi = Filterregel { element ->
+    val somVist = somIFrontend(element)
+    somVist.trim().length in 1..MAKS_FRI_VERDILENGDE && !liknerFødselsnummer(somVist)
+}
+
+private val stedsnavnformat = Regex("""\S.{0,99} \((Kommune|Fylke)\)""")
+
+/** Steder fra pam-geografi, som «Bergen (Kommune)» eller «Vestland (Fylke)». */
+private val stedsnavn = Filterregel { element ->
+    stedsnavnformat.matches(somIFrontend(element)) && friVerdi.erGyldig(element)
+}
+
+/**
+ * Liste av frie verdier. Fødselsnummersjekken ser også på verdiene satt sammen med mellomrom, så et nummer delt
+ * over to verdier stoppes. Ved rensing fjernes hele parameteren hvis de gyldige verdiene til sammen ligner et
+ * fødselsnummer.
+ */
+private fun friListe(element: Filterregel): Filterregel {
+    val liste = liste(element)
+    fun sammenlagtLiknerFødselsnummer(verdi: String) =
+        liknerFødselsnummer(verdi.split(',').joinToString(" ", transform = ::somIFrontend))
+
+    return object : Filterregel {
+        override fun erGyldig(verdi: String) = liste.erGyldig(verdi) && !sammenlagtLiknerFødselsnummer(verdi)
+        override fun rens(verdi: String) = liste.rens(verdi)?.takeUnless(::sammenlagtLiknerFødselsnummer)
+    }
+}
+
+internal val frieVerdier = friListe(friVerdi)
+internal val stedsnavnliste = friListe(stedsnavn)
