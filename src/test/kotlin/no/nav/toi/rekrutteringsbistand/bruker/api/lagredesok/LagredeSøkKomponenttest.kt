@@ -16,12 +16,16 @@ import java.time.ZoneId
 import java.util.UUID
 
 /**
- * Felles komponenttester for alle domener. Hvert domene har en underklasse med gyldige filtre.
+ * Felles komponenttester for lagrede søk. JUnit kjører hver test her én gang per underklasse, altså én gang per
+ * domene. Underklassen gir domenet og to gyldige filtre, og har tester som bare gjelder det domenet.
  */
 abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene) : TestRunningApplication() {
 
-    /** To ulike filtre som er gyldige i domenet. */
-    protected abstract val filtre: Pair<String, String>
+    /** Et filter som er gyldig i domenet. */
+    protected abstract val gyldigFilter: String
+
+    /** Et annet gyldig filter, så testene kan se at søket fikk riktig filter ved erstatting og like navn. */
+    protected abstract val annetGyldigFilter: String
 
     protected val client = HttpClient.newHttpClient()
     protected val objectMapper = JacksonConfig.objectMapper
@@ -213,8 +217,8 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
     @Test
     fun `nye søk får frist, søkeord og plass i listen`() {
         val navIdent = nyIdent()
-        val første = opprett(navIdent, "Publiserte", filtre.first, listOf("kokk"))
-        val andre = opprett(navIdent, "Utkast", filtre.second)
+        val første = opprett(navIdent, "Publiserte", gyldigFilter, listOf("kokk"))
+        val andre = opprett(navIdent, "Utkast", annetGyldigFilter)
 
         assertThat(andre.erStandard).isFalse()
         assertThat(første.sistAktiv).isEqualTo(idag)
@@ -228,7 +232,7 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
     fun `standardsøket står først, og resten sorteres etter norsk alfabet med æ, ø og å til slutt`() {
         val navIdent = nyIdent()
         val søk = listOf("Østlandet", "Åpne treff", "Ærlige treff", "bergen", "Arendal", "Zebra")
-            .associateWith { opprett(navIdent, it, filtre.first).id }
+            .associateWith { opprett(navIdent, it, gyldigFilter).id }
 
         assertThat(send(settStandardForespørsel(navIdent, søk.getValue("Østlandet"))).statusCode()).isEqualTo(204)
         assertThat(hent(navIdent).map { it.navn })
@@ -242,16 +246,16 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
     @Test
     fun `like navn er lov, og endring eller sletting av ett søk påvirker ikke det andre`() {
         val navIdent = nyIdent()
-        val første = opprett(navIdent, "Mine treff", "fylker=03")
-        val andre = opprett(navIdent, "Mine treff", "fylker=46")
+        val første = opprett(navIdent, "Mine treff", gyldigFilter)
+        val andre = opprett(navIdent, "Mine treff", annetGyldigFilter)
 
-        assertThat(erstatt(navIdent, første.id, "Mine treff", "fylker=50").statusCode()).isEqualTo(200)
+        assertThat(erstatt(navIdent, første.id, "Mine treff", "").statusCode()).isEqualTo(200)
         assertThat(slett(navIdent, første.id).statusCode()).isEqualTo(204)
 
         val gjenværende = hent(navIdent)
         assertThat(gjenværende).hasSize(1)
         assertThat(gjenværende.single().id).isEqualTo(andre.id)
-        assertThat(gjenværende.single().filter).isEqualTo("fylker=46")
+        assertThat(gjenværende.single().filter).isEqualTo(annetGyldigFilter)
     }
 
     @Test
@@ -260,12 +264,12 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
         val standard = settInn(navIdent, "Standard", idag.minusMonths(1), erStandard = true)
         val annet = settInn(navIdent, "Annet", idag.minusMonths(2))
 
-        val respons = erstatt(navIdent, annet, "Nytt navn", filtre.second, listOf("lager"))
+        val respons = erstatt(navIdent, annet, "Nytt navn", annetGyldigFilter, listOf("lager"))
         assertThat(respons.statusCode()).isEqualTo(200)
         val oppdatert = objectMapper.readValue(respons.body(), LagretSøkDto::class.java)
 
         assertThat(oppdatert.navn).isEqualTo("Nytt navn")
-        assertThat(oppdatert.filter).isEqualTo(filtre.second)
+        assertThat(oppdatert.filter).isEqualTo(annetGyldigFilter)
         assertThat(oppdatert.fritekst).containsExactly("lager")
         assertThat(oppdatert.sistAktiv).isEqualTo(idag)
         assertThat(oppdatert.erStandard).isFalse()
@@ -420,7 +424,7 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
                 forespørsel("$endepunkt/$søk", navIdent).DELETE().build()
             } else {
                 forespørsel("$endepunkt/$søk", navIdent)
-                    .PUT(HttpRequest.BodyPublishers.ofString(body("Nytt navn $it", filtre.first))).build()
+                    .PUT(HttpRequest.BodyPublishers.ofString(body("Nytt navn $it", gyldigFilter))).build()
             }
         }
 
@@ -480,7 +484,7 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
             Triple("fødselsnummer etter tekst i søkeord", "Treff", listOf("kokk", "kokk $syntetiskNummer")),
         )
         tilfeller.forEach { (beskrivelse, navn, fritekst) ->
-            val respons = send(opprettForespørsel(navIdent, navn, filtre.first, fritekst))
+            val respons = send(opprettForespørsel(navIdent, navn, gyldigFilter, fritekst))
             assertThat(respons.statusCode()).describedAs(beskrivelse).isEqualTo(400)
             assertThat(respons.body()).describedAs(beskrivelse).doesNotContain(syntetiskNummer)
         }
@@ -490,29 +494,29 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
     @Test
     fun `fødselsnummer ved erstatting gir 400, og søket er uendret`() {
         val navIdent = nyIdent()
-        val søk = opprett(navIdent, "Før", filtre.first, listOf("kokk"))
+        val søk = opprett(navIdent, "Før", gyldigFilter, listOf("kokk"))
 
-        assertThat(erstatt(navIdent, søk.id, "Etter $syntetiskNummer", filtre.second).statusCode()).isEqualTo(400)
-        assertThat(erstatt(navIdent, søk.id, "Etter", filtre.second, listOf(syntetiskNummer)).statusCode()).isEqualTo(400)
+        assertThat(erstatt(navIdent, søk.id, "Etter $syntetiskNummer", annetGyldigFilter).statusCode()).isEqualTo(400)
+        assertThat(erstatt(navIdent, søk.id, "Etter", annetGyldigFilter, listOf(syntetiskNummer)).statusCode()).isEqualTo(400)
 
         val lagret = hent(navIdent).single()
         assertThat(lagret.navn).isEqualTo("Før")
-        assertThat(lagret.filter).isEqualTo(filtre.first)
+        assertThat(lagret.filter).isEqualTo(gyldigFilter)
         assertThat(lagret.fritekst).containsExactly("kokk")
     }
 
     @Test
     fun `søk med filtre som er tatt ut av søket, kan hentes, brukes og få nytt navn`() {
         val navIdent = nyIdent()
-        val id = settInn(navIdent, "Gammelt søk", idag, filter = "fjernet=gammel&${filtre.first}")
+        val id = settInn(navIdent, "Gammelt søk", idag, filter = "fjernet=gammel&${gyldigFilter}")
 
-        assertThat(hent(navIdent).single().filter).isEqualTo(filtre.first)
+        assertThat(hent(navIdent).single().filter).isEqualTo(gyldigFilter)
         val brukt = objectMapper.readValue(bruk(navIdent, id).body(), LagretSøkDto::class.java)
-        assertThat(brukt.filter).isEqualTo(filtre.first)
+        assertThat(brukt.filter).isEqualTo(gyldigFilter)
 
         val respons = erstatt(navIdent, id, "Nytt navn", brukt.filter)
         assertThat(respons.statusCode()).isEqualTo(200)
-        assertThat(hent(navIdent).single()).extracting("navn", "filter").containsExactly("Nytt navn", filtre.first)
+        assertThat(hent(navIdent).single()).extracting("navn", "filter").containsExactly("Nytt navn", gyldigFilter)
     }
 
     @Test
@@ -593,7 +597,7 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
     @Test
     fun `første søk blir ikke standard, vanlig søk er standard`() {
         val navIdent = nyIdent()
-        val første = opprett(navIdent, "Første", filtre.first)
+        val første = opprett(navIdent, "Første", gyldigFilter)
 
         assertThat(første.erStandard).isFalse()
         assertThat(hent(navIdent).none { it.erStandard }).isTrue()
@@ -603,7 +607,7 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
     @Test
     fun `vanlig søk kan velges som standard, og et lagret søk kan velges igjen etterpå`() {
         val navIdent = nyIdent()
-        val søk = opprett(navIdent, "Lagret", filtre.first).id
+        val søk = opprett(navIdent, "Lagret", gyldigFilter).id
 
         assertThat(send(settStandardForespørsel(navIdent, søk)).statusCode()).isEqualTo(204)
         assertThat(hent(navIdent).single().erStandard).isTrue()
