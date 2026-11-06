@@ -123,14 +123,14 @@ class KandidatFilterTest {
     }
 
     @Test
-    fun `avviser 11 sifre i frie verdier, også med skilletegn og delt over to verdier`() {
+    fun `avviser 11 sifre i frie verdier, også med mellomrom og delt over to verdier`() {
         listOf(
             "kompetanse=12345678901",
             "arbeidserfaring=123456+78901",
             "yrke=123456%2078901",
-            "sprak=123456-78901",
-            "kompetanse=123456%252C78901",
             "kompetanse=123456%2C78901",
+            "kompetanse=123456+%2C78901",
+            "kompetanse=123456++78901",
             "kompetanse=Ring+123456%2C78901+i+dag",
             "sted=Ola+12345678901+%28Kommune%29",
             "kompetanse=%EF%BC%91%EF%BC%92%EF%BC%93%EF%BC%94%EF%BC%95%EF%BC%96%EF%BC%97%EF%BC%98%EF%BC%99%EF%BC%90%EF%BC%91",
@@ -146,6 +146,9 @@ class KandidatFilterTest {
             "kompetanse=1234567890",
             "kompetanse=123456789012",
             "kompetanse=12345%2C12345",
+            "kompetanse=123456%252C78901",
+            "kompetanse=123456%252C+78901",
+            "sprak=123456-78901",
         ).forEach {
             assertThat(regler.erGyldig(it)).`as`(it).isTrue()
         }
@@ -155,6 +158,7 @@ class KandidatFilterTest {
     fun `rensing fjerner verdier som ikke er gyldige, og hele listen når verdiene sammen ligner et fødselsnummer`() {
         assertThat(regler.rens("kompetanse=Kokk%2C12345678901")).isEqualTo("kompetanse=Kokk")
         assertThat(regler.rens("kompetanse=123456%2C78901&borDer=ja")).isEqualTo("borDer=ja")
+        assertThat(regler.rens("kompetanse=123456+%2C78901&borDer=ja")).isEqualTo("borDer=ja")
         assertThat(regler.rens("innsatsgruppe=STANDARD_INNSATS%2CUKJENT")).isEqualTo("innsatsgruppe=STANDARD_INNSATS")
     }
 }

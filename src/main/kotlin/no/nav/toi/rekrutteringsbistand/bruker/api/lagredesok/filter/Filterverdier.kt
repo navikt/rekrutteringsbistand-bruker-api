@@ -40,15 +40,10 @@ private const val MAKS_FRI_VERDILENGDE = 100
  */
 private fun somIFrontend(element: String) = element.replace("%2C", ",", ignoreCase = true)
 
-/** Sjekker også med komma som mellomrom, fordi et komma kan skille fødselsdatoen fra personnummeret. */
-private fun liknerFødselsnummer(tekst: String) =
-    Fødselsnummersjekk.inneholderFødselsnummer(tekst) ||
-        Fødselsnummersjekk.inneholderFødselsnummer(tekst.replace(',', ' '))
-
 /** Tekst veilederen har skrevet eller valgt fra forslag: 1 til 100 tegn og ingenting som ligner et fødselsnummer. */
 private val friVerdi = Filterregel { element ->
     val somVist = somIFrontend(element)
-    somVist.trim().length in 1..MAKS_FRI_VERDILENGDE && !liknerFødselsnummer(somVist)
+    somVist.trim().length in 1..MAKS_FRI_VERDILENGDE && !Fødselsnummersjekk.inneholderFødselsnummer(somVist)
 }
 
 private val stedsnavnformat = Regex("""\S.{0,99} \((Kommune|Fylke)\)""")
@@ -66,7 +61,7 @@ private val stedsnavn = Filterregel { element ->
 private fun friListe(element: Filterregel): Filterregel {
     val liste = liste(element)
     fun sammenlagtLiknerFødselsnummer(verdi: String) =
-        liknerFødselsnummer(verdi.split(',').joinToString(" ", transform = ::somIFrontend))
+        Fødselsnummersjekk.inneholderFødselsnummer(verdi.split(',').joinToString(" ", transform = ::somIFrontend))
 
     return object : Filterregel {
         override fun erGyldig(verdi: String) = liste.erGyldig(verdi) && !sammenlagtLiknerFødselsnummer(verdi)

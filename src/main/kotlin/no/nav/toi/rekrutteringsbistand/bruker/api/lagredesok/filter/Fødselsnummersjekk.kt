@@ -8,17 +8,19 @@ import java.text.Normalizer
  *
  * Vi avviser alle tall med 11 sifre, uten å sjekke dato eller kontrollsiffer. Da får vi med D-nummer, H-nummer,
  * syntetiske nummer, tastefeil og fødselsnumre etter reglene fra 2032. Vi avviser heller for mye enn for lite.
- * Mellom to sifre kan det stå ett skilletegn (mellomrom, hardt mellomrom, tab, punktum, bindestrek eller skråstrek),
- * så `123456 78901` og `12 34 56 789 01` også stoppes. NFKC gjør sifre i full bredde om til vanlige sifre.
+ * Mellom to sifre kan det stå mellomrom, så `123456 78901` og `12 34 56 789 01` også stoppes. Flere mellomrom på
+ * rad regnes som ett. NFKC gjør sifre i full bredde om til vanlige sifre og hardt mellomrom om til vanlig mellomrom.
+ * Andre tegn mellom sifrene, som komma, punktum, bindestrek, skråstrek eller tab, regnes ikke som skilletegn.
  * Tall med flere enn 11 sifre på rad stoppes ikke.
  *
  * Sjekken er et sikkerhetsnett mot at noen skriver et fødselsnummer ved et uhell, ikke mot bevisst omgåelse.
- * Skilletegnene står eksplisitt, fordi `\s` matcher ulike tegn i Kotlin og JavaScript.
+ * Mellomrommet står eksplisitt, fordi `\s` matcher ulike tegn i Kotlin og JavaScript.
  */
 object Fødselsnummersjekk {
 
-    private val elleveSifre = Regex("""(?<!\d)\d(?:[ \t\u00A0\u202F.\-/]?\d){10}(?!\d)""")
+    private val elleveSifre = Regex("""(?<!\d)\d(?: ?\d){10}(?!\d)""")
+    private val flereMellomrom = Regex(""" +""")
 
     fun inneholderFødselsnummer(tekst: String): Boolean =
-        elleveSifre.containsMatchIn(Normalizer.normalize(tekst, Normalizer.Form.NFKC))
+        elleveSifre.containsMatchIn(Normalizer.normalize(tekst, Normalizer.Form.NFKC).replace(flereMellomrom, " "))
 }
