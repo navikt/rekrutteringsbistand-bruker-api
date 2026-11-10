@@ -13,11 +13,13 @@ import org.slf4j.LoggerFactory
 import java.util.*
 import javax.sql.DataSource
 
+private lateinit var javalin: Javalin
 
 fun main() {
     val env = System.getenv()
     val appContext = ApplicationContext(env)
-    appContext.startApp()
+    Runtime.getRuntime().addShutdownHook(Thread { appContext.stoppApp() })
+    javalin = appContext.startApp()
 }
 
 fun ApplicationContext.startApp(startOpprydningsjobb: Boolean = true): Javalin {
@@ -34,9 +36,16 @@ fun ApplicationContext.startApp(startOpprydningsjobb: Boolean = true): Javalin {
         modiaOppfolging = modiaOppfolging,
         modiaGenerellTilgang = modiaGenerell
     )
+    startSchedulere()
     if (startOpprydningsjobb) lagredeSøkOpprydningsjobb.start()
 
     return javalin
+}
+
+fun ApplicationContext.stoppApp() {
+    log.info("Stopper applikasjonen")
+    stoppSchedulere()
+    if (::javalin.isInitialized) javalin.stop()
 }
 
 private fun ApplicationContext.setupAllRoutes() {

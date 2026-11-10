@@ -102,6 +102,44 @@ class TilbakemeldingerRepository(private val dataSource: DataSource) {
             }
         }
 
+    fun slettNavnBatch(tilbakemeldingIder: List<UUID>): Int {
+        if (tilbakemeldingIder.isEmpty()) return 0
+        val uuidArray = dataSource.connection.createArrayOf("uuid", tilbakemeldingIder.map { it }.toTypedArray())
+        return dataSource.connection.use { c ->
+            c.prepareStatement(
+                """
+                UPDATE $TABLE SET $COL_NAVN = NULL WHERE $COL_ID = any(?)
+                """.trimIndent()
+            ).use { ps ->
+                ps.setObject(1, uuidArray)
+                ps.executeUpdate()
+            }
+        }
+    }
+
+    fun hentTilbakemeldingerDatoPassertMedAngittTid(måneder: Long, dager: Long): List<Tilbakemelding> {
+        val cutoffDato = LocalDateTime.now()
+            .minusMonths(måneder)
+            .minusDays(dager)
+
+        return dataSource.connection.use { c ->
+            c.prepareStatement(
+                """
+                SELECT $COL_ID, $COL_NAVN, $COL_TILBAKEMELDING, $COL_DATO, $COL_STATUS, $COL_TRELLO_LENKE, $COL_KATEGORI
+                FROM $TABLE
+                WHERE $COL_DATO < ?
+                """.trimIndent()
+            ).use { ps ->
+                ps.setTimestamp(1, Timestamp.from(cutoffDato.atZone(ZoneId.of("Europe/Oslo")).toInstant()))
+                ps.executeQuery().use { rs ->
+                    generateSequence {
+                        if (rs.next()) rs.toTilbakemelding() else null
+                    }.toList()
+                }
+            }
+        }
+    }
+
     private fun ResultSet.toTilbakemelding(): Tilbakemelding =
         Tilbakemelding(
             id = getObject(COL_ID, UUID::class.java),

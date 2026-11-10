@@ -15,6 +15,7 @@ import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.NyheterController
 import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.NyheterRepository
 import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.TilbakemeldingerController
 import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.TilbakemeldingerRepository
+import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.TilbakemeldingerOpprydningScheduler
 import no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger.BrukerinnstillingerController
 import no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger.BrukerinnstillingerRepository
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.LagredeSøkController
@@ -44,14 +45,16 @@ open class ApplicationContext(envInn: Map<String, String>) {
         LogbackMetrics().bindTo(registry)
     }
 
-    val nyheterRepository = NyheterRepository(dataSource)
+    val leaderElection: LeaderElectionInterface = LeaderElection()
 
     val naisController = NaisController(prometheusRegistry)
 
+    val nyheterRepository = NyheterRepository(dataSource)
     val nyheterController = NyheterController(JacksonConfig.objectMapper, nyheterRepository)
 
     val tilbakemeldingerRepository = TilbakemeldingerRepository(dataSource)
     val tilbakemeldingerController = TilbakemeldingerController(JacksonConfig.objectMapper, tilbakemeldingerRepository)
+    val tilbakemeldingerOpprydningScheduler by lazy { TilbakemeldingerOpprydningScheduler(tilbakemeldingerRepository, leaderElection) }
 
     val brukerinnstillingerRepository = BrukerinnstillingerRepository(dataSource)
     val brukerinnstillingerController = BrukerinnstillingerController(JacksonConfig.objectMapper, brukerinnstillingerRepository)
@@ -101,4 +104,14 @@ open class ApplicationContext(envInn: Map<String, String>) {
             initializationFailTimeout = 5_000
             validate()
         }.let(::HikariDataSource)
+
+    fun startSchedulere() {
+        log.info("Starter schedulere")
+        tilbakemeldingerOpprydningScheduler.start()
+    }
+
+    fun stoppSchedulere() {
+        log.info("Stopper schedulere")
+        tilbakemeldingerOpprydningScheduler.stopp()
+    }
 }
