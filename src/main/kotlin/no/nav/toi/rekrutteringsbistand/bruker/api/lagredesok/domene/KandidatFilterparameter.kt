@@ -41,7 +41,8 @@ enum class KandidatFilterparameter(
     HOVEDMÅL("hovedmal", liste(enAv("SKAFFE_ARBEID", "BEHOLDE_ARBEID", "OKE_DELTAKELSE"))),
     UTDANNING("utdanning", liste(enAv("videregaende", "fagskole", "bachelor", "master", "doktorgrad"))),
     MÅLGRUPPE("malgruppe", liste(enAv("unge", "senior", "hullICv"))),
-    OMFANG("omfang", liste(enAv("HELTID", "DELTID"))),
+    // HELTID_OG_DELTID godtas til frontend uten valget «Heltid og deltid» er i prod. Fjern den da.
+    OMFANG("omfang", liste(enAv("HELTID", "DELTID", "HELTID_OG_DELTID"))),
     FØRERKORT(
         "forerkort",
         liste(

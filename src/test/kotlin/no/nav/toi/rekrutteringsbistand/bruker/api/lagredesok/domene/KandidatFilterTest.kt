@@ -163,10 +163,11 @@ class KandidatFilterTest {
         assertThat(regler.rens("innsatsgruppe=STANDARD_INNSATS%2CUKJENT")).isEqualTo("innsatsgruppe=STANDARD_INNSATS")
     }
 
+    // Gjelder til frontend uten «Heltid og deltid» er i prod. Når verdien fjernes, skal testen sjekke at
+    // erGyldig gir false og at rens fjerner verdien.
     @Test
-    fun `rensing fjerner HELTID_OG_DELTID fra søk lagret før valget ble fjernet`() {
-        assertThat(regler.erGyldig("omfang=DELTID%2CHELTID_OG_DELTID")).isFalse()
-        assertThat(regler.rens("omfang=DELTID%2CHELTID_OG_DELTID")).isEqualTo("omfang=DELTID")
-        assertThat(regler.rens("omfang=HELTID_OG_DELTID&borDer=ja")).isEqualTo("borDer=ja")
+    fun `godtar HELTID_OG_DELTID fra frontend som ikke er oppdatert`() {
+        assertThat(regler.erGyldig("omfang=DELTID%2CHELTID_OG_DELTID")).isTrue()
+        assertThat(regler.rens("omfang=HELTID_OG_DELTID&borDer=ja")).isEqualTo("omfang=HELTID_OG_DELTID&borDer=ja")
     }
 }
