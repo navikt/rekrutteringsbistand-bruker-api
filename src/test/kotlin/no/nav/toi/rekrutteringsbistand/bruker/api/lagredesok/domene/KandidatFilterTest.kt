@@ -52,7 +52,7 @@ class KandidatFilterTest {
             "kompetanse=50%25+stilling%2CC%23%2CTruckf%C3%B8rerbevis+T1-T4",
             "kontor=0301%2C4601",
             "malgruppe=hullICv%2Csenior%2Cunge",
-            "omfang=DELTID%2CHELTID%2CHELTID_OG_DELTID",
+            "omfang=DELTID%2CHELTID",
             "portefolje=valgtekontorer",
             "sprak=Engelsk%2CNorsk",
             "sted=Aurskog-H%C3%B8land+%28Kommune%29%2CBergen+%28Kommune%29%2CVestland+%28Fylke%29",
@@ -161,5 +161,12 @@ class KandidatFilterTest {
         assertThat(regler.rens("kompetanse=123456%2C78901&borDer=ja")).isEqualTo("borDer=ja")
         assertThat(regler.rens("kompetanse=123456+%2C78901&borDer=ja")).isEqualTo("borDer=ja")
         assertThat(regler.rens("innsatsgruppe=STANDARD_INNSATS%2CUKJENT")).isEqualTo("innsatsgruppe=STANDARD_INNSATS")
+    }
+
+    @Test
+    fun `rensing fjerner HELTID_OG_DELTID fra søk lagret før valget ble fjernet`() {
+        assertThat(regler.erGyldig("omfang=DELTID%2CHELTID_OG_DELTID")).isFalse()
+        assertThat(regler.rens("omfang=DELTID%2CHELTID_OG_DELTID")).isEqualTo("omfang=DELTID")
+        assertThat(regler.rens("omfang=HELTID_OG_DELTID&borDer=ja")).isEqualTo("borDer=ja")
     }
 }

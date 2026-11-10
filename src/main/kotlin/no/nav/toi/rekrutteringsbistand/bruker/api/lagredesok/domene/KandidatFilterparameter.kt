@@ -41,7 +41,7 @@ enum class KandidatFilterparameter(
     HOVEDMÅL("hovedmal", liste(enAv("SKAFFE_ARBEID", "BEHOLDE_ARBEID", "OKE_DELTAKELSE"))),
     UTDANNING("utdanning", liste(enAv("videregaende", "fagskole", "bachelor", "master", "doktorgrad"))),
     MÅLGRUPPE("malgruppe", liste(enAv("unge", "senior", "hullICv"))),
-    OMFANG("omfang", liste(enAv("HELTID", "DELTID", "HELTID_OG_DELTID"))),
+    OMFANG("omfang", liste(enAv("HELTID", "DELTID"))),
     FØRERKORT(
         "forerkort",
         liste(

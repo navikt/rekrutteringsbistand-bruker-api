@@ -54,5 +54,24 @@ enum class StillingFilterparameter(
     ),
     FYLKER("fylker", fylkesnumre),
     KOMMUNER("kommuner", kommunenumre),
+    OMFANG("omfang", liste(enAv("heltid", "deltid"))),
+    ANSETTELSESFORM(
+        "ansettelsesform",
+        liste(
+            enAv(
+                "Fast",
+                "Vikariat",
+                "Engasjement",
+                "Prosjekt",
+                "Åremål",
+                "Sesong",
+                "Feriejobb",
+                "Trainee",
+                "Lærling",
+                "Selvstendig næringsdrivende",
+                "Annet",
+            )
+        ),
+    ),
     UTEN_OPPDRAG("utenOppdrag", enAv("true")),
 }
