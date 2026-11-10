@@ -50,6 +50,7 @@ enum class KandidatFilterparameter(
                 "A2 - Mellomtung motorsykkel",
                 "A - Tung motorsykkel",
                 "B - Personbil",
+                "B 78 - Personbil med automatgir",
                 "BE - Personbil med tilhenger",
                 "C1 - Lett lastebil",
                 "C1E - Lett lastebil med tilhenger",

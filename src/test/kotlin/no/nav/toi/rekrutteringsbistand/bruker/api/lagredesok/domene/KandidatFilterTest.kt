@@ -27,6 +27,7 @@ class KandidatFilterTest {
                 "A1+-+Lett+motorsykkel",
                 "A2+-+Mellomtung+motorsykkel",
                 "B+-+Personbil",
+                "B+78+-+Personbil+med+automatgir",
                 "BE+-+Personbil+med+tilhenger",
                 "C+-+Lastebil",
                 "C1+-+Lett+lastebil",
