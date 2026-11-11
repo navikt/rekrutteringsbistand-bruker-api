@@ -52,7 +52,7 @@ class KandidatFilterTest {
             "kompetanse=50%25+stilling%2CC%23%2CTruckf%C3%B8rerbevis+T1-T4",
             "kontor=0301%2C4601",
             "malgruppe=hullICv%2Csenior%2Cunge",
-            "omfang=DELTID%2CHELTID%2CHELTID_OG_DELTID",
+            "omfang=DELTID%2CHELTID",
             "portefolje=valgtekontorer",
             "sprak=Engelsk%2CNorsk",
             "sted=Aurskog-H%C3%B8land+%28Kommune%29%2CBergen+%28Kommune%29%2CVestland+%28Fylke%29",
@@ -161,5 +161,13 @@ class KandidatFilterTest {
         assertThat(regler.rens("kompetanse=123456%2C78901&borDer=ja")).isEqualTo("borDer=ja")
         assertThat(regler.rens("kompetanse=123456+%2C78901&borDer=ja")).isEqualTo("borDer=ja")
         assertThat(regler.rens("innsatsgruppe=STANDARD_INNSATS%2CUKJENT")).isEqualTo("innsatsgruppe=STANDARD_INNSATS")
+    }
+
+    // Gjelder til frontend uten «Heltid og deltid» er i prod. Når verdien fjernes, skal testen sjekke at
+    // erGyldig gir false og at rens fjerner verdien.
+    @Test
+    fun `godtar HELTID_OG_DELTID fra frontend som ikke er oppdatert`() {
+        assertThat(regler.erGyldig("omfang=DELTID%2CHELTID_OG_DELTID")).isTrue()
+        assertThat(regler.rens("omfang=HELTID_OG_DELTID&borDer=ja")).isEqualTo("omfang=HELTID_OG_DELTID&borDer=ja")
     }
 }

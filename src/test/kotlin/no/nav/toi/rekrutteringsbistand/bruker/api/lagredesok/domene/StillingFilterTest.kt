@@ -21,6 +21,19 @@ class StillingFilterTest {
         "sortering=mestRelevant",
         "statuser=",
         listOf(
+            "ansettelsesform=" + listOf(
+                "Annet",
+                "Engasjement",
+                "Fast",
+                "Feriejobb",
+                "L%C3%A6rling",
+                "Prosjekt",
+                "Selvstendig+n%C3%A6ringsdrivende",
+                "Sesong",
+                "Trainee",
+                "Vikariat",
+                "%C3%85rem%C3%A5l",
+            ).joinToString("%2C"),
             "fylker=03%2C46",
             "inkludering=" + listOf(
                 "INKLUDERING",
@@ -44,6 +57,7 @@ class StillingFilterTest {
                 "TILTAK_ELLER_VIRKEMIDDEL__MENTORTILSKUDD",
             ).joinToString("%2C"),
             "kommuner=0301%2C4601",
+            "omfang=deltid%2Cheltid",
             "statuser=" + listOf(
                 "Fullf%C3%B8rt",
                 "Ikke+publisert",
