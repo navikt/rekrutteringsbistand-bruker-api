@@ -1,7 +1,6 @@
-package no.nav.toi.rekrutteringsbistand.bruker.api.nyheter
+package no.nav.toi.rekrutteringsbistand.bruker.api
 
 import no.nav.security.mock.oauth2.MockOAuth2Server
-import no.nav.toi.rekrutteringsbistand.bruker.api.ApplicationContext
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName
@@ -15,8 +14,10 @@ class TestApplicationContext(
             localEnv["DB_HOST"] = localConfig.host
             localEnv["DB_PORT"] = localConfig.getMappedPort(5432).toString()
             localEnv["NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_JDBC_URL"] = localConfig.jdbcUrl
-        }
-): ApplicationContext(localEnv) {
+        }, leaderElection: LeaderElectionInterface = object : LeaderElectionInterface {
+        override fun isLeader() = false
+    }
+): ApplicationContext(localEnv, leaderElection) {
     val mockOauth2Server = MockOAuth2Server().also { server ->
         server.start(port = 8081)
         localEnv["AZURE_OPENID_CONFIG_JWKS_URI"] = server.jwksUrl("azuread").toString()

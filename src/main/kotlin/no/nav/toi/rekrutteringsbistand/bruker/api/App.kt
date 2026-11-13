@@ -1,51 +1,34 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api
 
 import io.javalin.Javalin
-import io.javalin.config.JavalinConfig
 import io.javalin.json.JavalinJackson3
-import io.javalin.json.JsonMapper
 import io.javalin.micrometer.MicrometerPlugin
-import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.LagredeSøkFeil
-import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.utlop.LagredeSøkOpprydningsjobb
-import org.flywaydb.core.Flyway
 import org.slf4j.LoggerFactory
-import java.util.*
-import javax.sql.DataSource
+import java.net.URI
 
-private lateinit var javalin: Javalin
+private val log = noClassLogger()
 
 fun main() {
     val env = System.getenv()
-    val appContext = ApplicationContext(env)
-    Runtime.getRuntime().addShutdownHook(Thread { appContext.stoppApp() })
-    javalin = appContext.startApp()
-}
-
-fun ApplicationContext.startApp(startOpprydningsjobb: Boolean = true): Javalin {
-    val javalin = startJavalin(
-        port = 8080,
-        jsonMapper = JavalinJackson3(JacksonConfig.objectMapper),
-        meterRegistry = prometheusRegistry,
-        dataSource = dataSource,
-        tilgangsstyring = tilgangsstyring,
-        autentiseringskonfigurasjoner = autentiseringskonfigurasjoner,
-        arbeidsgiverrettet = arbeidsgiverrettet,
-        utvikler = utvikler,
-        jobbsokerrettet = jobbsokerrettet,
-        modiaOppfolging = modiaOppfolging,
-        modiaGenerellTilgang = modiaGenerell
+    val leaderElection = LeaderElection(
+        electorUri = URI.create(env.getValue("ELECTOR_GET_URL")),
+        hostname = env.getValue("HOSTNAME"),
     )
-    startSchedulere()
-    if (startOpprydningsjobb) lagredeSøkOpprydningsjobb.start()
+    val appContext = ApplicationContext(env, leaderElection)
 
-    return javalin
-}
+    try {
+        appContext.startApp()
+    } catch (e: Exception) {
+        log.error("Oppstart feilet", e)
+        appContext.stoppApp()
+        throw e
+    }
 
-fun ApplicationContext.stoppApp() {
-    log.info("Stopper applikasjonen")
-    stoppSchedulere()
-    if (::javalin.isInitialized) javalin.stop()
+    Runtime.getRuntime().addShutdownHook(Thread {
+        appContext.stoppApp()
+        leaderElection.close()
+    })
 }
 
 private fun ApplicationContext.setupAllRoutes() {
@@ -56,44 +39,29 @@ private fun ApplicationContext.setupAllRoutes() {
     lagredeSøkController.setupRoutes()
 }
 
-fun ApplicationContext.startJavalin(
-    port: Int = 8080,
-    jsonMapper: JsonMapper,
-    meterRegistry: PrometheusMeterRegistry,
-    dataSource: DataSource,
-    tilgangsstyring: Tilgangsstyring,
-    autentiseringskonfigurasjoner: List<Autentiseringskonfigurasjon>,
-    utvikler: UUID,
-    arbeidsgiverrettet: UUID,
-    jobbsokerrettet: UUID,
-    modiaOppfolging: UUID,
-    modiaGenerellTilgang: UUID
-): Javalin {
-    kjørFlywayMigreringer(dataSource)
+internal fun ApplicationContext.startJavalin(port: Int): Javalin {
     val log = LoggerFactory.getLogger("javalin")
-    val micrometerPlugin = MicrometerPlugin { micrometerConfig ->
-        micrometerConfig.registry = meterRegistry
-    }
-    return Javalin.create {
+    val rolleUuidSpesifikasjon = RolleUuidSpesifikasjon(
+        arbeidsgiverrettet = arbeidsgiverrettet,
+        utvikler = utvikler,
+        jobbsokerrettet = jobbsokerrettet,
+        modiaOppfolging = modiaOppfolging,
+        modiaGenerellTilgang = modiaGenerell,
+    )
+
+    val server = Javalin.create {
         it.router.ignoreTrailingSlashes = true
         it.router.treatMultipleSlashesAsSingleSlash = true
         it.http.defaultContentType = "application/json"
-        it.jsonMapper(jsonMapper)
-        it.registerPlugin(micrometerPlugin)
-        it.kobleLagredeSøkOpprydningsjobbTilLivssyklus(lagredeSøkOpprydningsjobb)
+        it.jsonMapper(JavalinJackson3(JacksonConfig.objectMapper))
+        it.registerPlugin(MicrometerPlugin { micrometer -> micrometer.registry = prometheusRegistry })
         it.routes.apiBuilder { setupAllRoutes() }
         it.routes.beforeMatched { ctx ->
             tilgangsstyring.manage(
                 ctx = ctx,
                 routeRoles = ctx.routeRoles(),
                 autentiseringskonfigurasjoner = autentiseringskonfigurasjoner,
-                rolleUuidSpesifikasjon = RolleUuidSpesifikasjon(
-                    arbeidsgiverrettet = arbeidsgiverrettet,
-                    utvikler = utvikler,
-                    jobbsokerrettet = jobbsokerrettet,
-                    modiaOppfolging = modiaOppfolging,
-                    modiaGenerellTilgang = modiaGenerellTilgang
-                )
+                rolleUuidSpesifikasjon = rolleUuidSpesifikasjon,
             )
         }.exception(LagredeSøkFeil::class.java) { e, ctx ->
             ctx.status(e.status).json(mapOf("feil" to e.feil))
@@ -104,18 +72,12 @@ fun ApplicationContext.startJavalin(
             log.info("Exception: ${e.message}", e)
             ctx.status(500).result(e.message ?: "")
         }
-    }.start(port)
-}
+    }
 
-internal fun JavalinConfig.kobleLagredeSøkOpprydningsjobbTilLivssyklus(
-    jobb: LagredeSøkOpprydningsjobb,
-) {
-    events.serverStopping { jobb.close() }
-}
-
-private fun kjørFlywayMigreringer(dataSource: DataSource) {
-    Flyway.configure()
-        .dataSource(dataSource)
-        .load()
-        .migrate()
+    try {
+        return server.start(port)
+    } catch (e: Exception) {
+        runCatching { server.stop() }.onFailure(e::addSuppressed)
+        throw e
+    }
 }

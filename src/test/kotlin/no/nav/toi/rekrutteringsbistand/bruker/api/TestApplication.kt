@@ -1,6 +1,4 @@
-package no.nav.toi.rekrutteringsbistand.bruker.api.nyheter
-
-import no.nav.toi.rekrutteringsbistand.bruker.api.startApp
+package no.nav.toi.rekrutteringsbistand.bruker.api
 
 val env = mutableMapOf(
     "NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_USERNAME" to "test",

@@ -1,6 +1,6 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger
 
-import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.TestRunningApplication
+import no.nav.toi.rekrutteringsbistand.bruker.api.TestRunningApplication
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
