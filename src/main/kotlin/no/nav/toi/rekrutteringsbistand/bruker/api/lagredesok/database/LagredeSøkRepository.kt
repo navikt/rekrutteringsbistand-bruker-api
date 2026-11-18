@@ -91,6 +91,32 @@ class LagredeSøkRepository {
             ps.executeQuery().use { rs -> if (rs.next()) rs.tilLagretSøk() else null }
         }
 
+    fun endreNavn(
+        c: Connection,
+        domene: LagredeSøkDomene,
+        navIdent: String,
+        id: UUID,
+        navn: String,
+        idag: LocalDate,
+        utløpsgrense: LocalDate,
+    ): LagretSøk? =
+        c.prepareStatement(
+            """
+            UPDATE lagrede_sok
+            SET navn = ?, sistAktiv = ?
+            WHERE domene = ? AND id = ? AND navIdent = ? AND sistAktiv > ?
+            RETURNING $kolonner
+            """.trimIndent()
+        ).use { ps ->
+            ps.setString(1, navn)
+            ps.setObject(2, idag)
+            ps.setString(3, domene.stinavn)
+            ps.setObject(4, id)
+            ps.setString(5, navIdent)
+            ps.setObject(6, utløpsgrense)
+            ps.executeQuery().use { rs -> if (rs.next()) rs.tilLagretSøk() else null }
+        }
+
     /** Et utløpt søk med standardmerke regnes ikke som standard, i tråd med [hentAktive]. */
     fun hentStandardId(c: Connection, domene: LagredeSøkDomene, navIdent: String, utløpsgrense: LocalDate): UUID? =
         c.prepareStatement(

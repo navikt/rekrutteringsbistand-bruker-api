@@ -22,6 +22,10 @@ enum class LagredeSøkDomene(
         stinavn = "stilling",
         filterregler = filterreglerFor<StillingFilterparameter>(),
     ),
+    KANDIDATSOK(
+        stinavn = "kandidatsok",
+        filterregler = filterreglerFor<KandidatFilterparameter>(),
+    ),
     ;
 
     override fun toString() = stinavn

@@ -4,8 +4,10 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 
 /**
- * Filteret er en query-streng som frontend bruker direkte i URL-en. Vi godtar bare kjente parametere og verdier,
- * så navn eller fritekst ikke kan lagres i filteret og havne i URL-en senere.
+ * Filteret er query-strengen frontend bygger med nuqs, og den lagres uendret. Da kan frontend bruke den direkte i
+ * URL-en og sammenligne den med gjeldende filtre. Vi dekoder bare for å sjekke og rense. Bare kjente parametere og
+ * verdier godtas, fordi filteret havner i URL-en. Se «Filteret lagres som query-streng» i `lagrede-sok.md` i
+ * rekrutteringstreff-backend.
  */
 class Filterregler(private val regler: Map<String, Filterregel>) {
 
@@ -18,8 +20,7 @@ class Filterregler(private val regler: Map<String, Filterregel>) {
 
     /**
      * Fjerner parametere og verdier som ikke er gyldige lenger, for eksempel etter at et filter er tatt ut av søket.
-     * Gyldige parametere beholdes tegn for tegn, så filteret fortsatt er likt det frontend bygger. Resultatet er
-     * alltid gyldig.
+     * Gyldige parametere beholdes tegn for tegn, så de fortsatt er like det frontend bygger.
      */
     fun rens(filter: String): String {
         if (filter.isEmpty()) return filter

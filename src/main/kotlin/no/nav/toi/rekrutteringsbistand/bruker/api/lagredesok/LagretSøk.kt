@@ -17,6 +17,10 @@ data class LagreSøkDto(
     val fritekst: List<String?>? = null,
 )
 
+data class NyttNavnDto(
+    val navn: String? = null,
+)
+
 data class LagretSøkDto(
     val id: UUID,
     val navn: String,
@@ -46,10 +50,7 @@ class GyldigLagreSøkInput private constructor(
 ) {
     companion object {
         fun fra(dto: LagreSøkDto, domene: LagredeSøkDomene): GyldigLagreSøkInput {
-            val navn = dto.navn?.trim().orEmpty()
-            if (navn.isEmpty() || navn.length > MAKS_NAVNELENGDE) {
-                throw LagredeSøkFeil.UgyldigInput("Navnet må ha mellom 1 og $MAKS_NAVNELENGDE tegn")
-            }
+            val navn = navnMedGyldigLengde(dto.navn)
 
             val filter = dto.filter.orEmpty()
             if (filter.length > MAKS_FILTERLENGDE || !domene.filterregler.erGyldig(filter)) {
@@ -70,4 +71,25 @@ class GyldigLagreSøkInput private constructor(
             return GyldigLagreSøkInput(navn = navn, filter = filter, fritekst = søkeord)
         }
     }
+}
+
+/** Validert nytt navn uten fødselsnummer. Bare navnet endres, ikke filter eller søkeord. */
+class GyldigNyttNavn private constructor(val navn: String) {
+    companion object {
+        fun fra(dto: NyttNavnDto): GyldigNyttNavn {
+            val navn = navnMedGyldigLengde(dto.navn)
+            if (Fødselsnummersjekk.inneholderFødselsnummer(navn)) {
+                throw LagredeSøkFeil.UgyldigInput("Navnet inneholder noe som kan være et fødselsnummer")
+            }
+            return GyldigNyttNavn(navn)
+        }
+    }
+}
+
+private fun navnMedGyldigLengde(navn: String?): String {
+    val trimmet = navn?.trim().orEmpty()
+    if (trimmet.isEmpty() || trimmet.length > MAKS_NAVNELENGDE) {
+        throw LagredeSøkFeil.UgyldigInput("Navnet må ha mellom 1 og $MAKS_NAVNELENGDE tegn")
+    }
+    return trimmet
 }

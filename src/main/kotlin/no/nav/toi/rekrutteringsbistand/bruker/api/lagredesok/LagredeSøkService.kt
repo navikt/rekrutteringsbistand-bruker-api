@@ -68,6 +68,20 @@ class LagredeSøkService(
     }
 
     /**
+     * Endrer bare navnet og fornyer fristen. Filter og søkeord står urørt, så en navneendring i én fane ikke skriver
+     * tilbake innhold som er erstattet i en annen.
+     */
+    fun endreNavn(domene: LagredeSøkDomene, navIdent: String, id: UUID, nyttNavn: GyldigNyttNavn): LagretSøkDto {
+        val idag = idag()
+        val utløpsgrense = Utløpsregler.sisteUtløpteSistAktiv(idag)
+        val søk = dataSource.medLåstNavIdent(domene, navIdent) { c ->
+            repository.endreNavn(c, domene, navIdent, id, nyttNavn.navn, idag, utløpsgrense)
+        } ?: throw LagredeSøkFeil.IkkeFunnet()
+        metrikker.lagret(domene, Lagringstype.NYTT_NAVN)
+        return søk.tilDto(domene, idag)
+    }
+
+    /**
      * Flytter standardvalget til søket med [id], eller til vanlig søk når [id] er `null`.
      * Finnes ikke søket, kastes [LagredeSøkFeil.IkkeFunnet], og transaksjonen rulles tilbake, så forrige valg står.
      */

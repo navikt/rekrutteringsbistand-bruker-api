@@ -27,6 +27,7 @@ class LagredeSøkController(
         // Må stå før {id}/standard, ellers fanger den ruten segmentet «vanlig». En UUID kan aldri være «vanlig».
         put("/api/lagrede-sok/{domene}/vanlig/standard", { ctx -> velgVanligSøkHandler(ctx) }, Tilgangsrolle.BESKYTTET)
         put("/api/lagrede-sok/{domene}/{id}/standard", { ctx -> velgStandardHandler(ctx) }, Tilgangsrolle.BESKYTTET)
+        put("/api/lagrede-sok/{domene}/{id}/navn", { ctx -> endreNavnHandler(ctx) }, Tilgangsrolle.BESKYTTET)
 
         post("/api/lagrede-sok/{domene}/{id}/bruk", { ctx -> registrerBrukHandler(ctx) }, Tilgangsrolle.BESKYTTET)
     }
@@ -36,14 +37,20 @@ class LagredeSøkController(
     }
 
     private fun opprettLagretSøkHandler(ctx: Context) = håndter(ctx) { domene, navIdent ->
-        val input = GyldigLagreSøkInput.fra(lesBody(ctx), domene)
+        val input = GyldigLagreSøkInput.fra(lesBody<LagreSøkDto>(ctx), domene)
         ctx.status(201).json(service.opprett(domene, navIdent, input))
     }
 
     private fun erstattLagretSøkHandler(ctx: Context) = håndter(ctx) { domene, navIdent ->
         val id = søkeident(ctx)
-        val input = GyldigLagreSøkInput.fra(lesBody(ctx), domene)
+        val input = GyldigLagreSøkInput.fra(lesBody<LagreSøkDto>(ctx), domene)
         ctx.json(service.erstatt(domene, navIdent, id, input))
+    }
+
+    private fun endreNavnHandler(ctx: Context) = håndter(ctx) { domene, navIdent ->
+        val id = søkeident(ctx)
+        val nyttNavn = GyldigNyttNavn.fra(lesBody<NyttNavnDto>(ctx))
+        ctx.json(service.endreNavn(domene, navIdent, id, nyttNavn))
     }
 
     private fun slettLagretSøkHandler(ctx: Context) = håndter(ctx) { domene, navIdent ->
@@ -87,9 +94,9 @@ class LagredeSøkController(
         }
     }
 
-    private fun lesBody(ctx: Context): LagreSøkDto =
+    private inline fun <reified T : Any> lesBody(ctx: Context): T =
         try {
-            objectMapper.readValue(ctx.body(), LagreSøkDto::class.java)
+            objectMapper.readValue(ctx.body(), T::class.java)
         } catch (e: JacksonException) {
             null
         } ?: throw LagredeSøkFeil.UgyldigInput("Forespørselen er ugyldig")
