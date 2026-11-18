@@ -104,8 +104,8 @@ class TilbakemeldingerRepository(private val dataSource: DataSource) {
 
     fun slettNavnBatch(tilbakemeldingIder: List<UUID>): Int {
         if (tilbakemeldingIder.isEmpty()) return 0
-        val uuidArray = dataSource.connection.createArrayOf("uuid", tilbakemeldingIder.map { it }.toTypedArray())
         return dataSource.connection.use { c ->
+            val uuidArray = c.createArrayOf("uuid", tilbakemeldingIder.toTypedArray())
             c.prepareStatement(
                 """
                 UPDATE $TABLE SET $COL_NAVN = NULL WHERE $COL_ID = any(?)

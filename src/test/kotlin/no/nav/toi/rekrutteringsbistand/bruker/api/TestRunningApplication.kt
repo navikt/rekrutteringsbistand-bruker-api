@@ -10,6 +10,8 @@ abstract class TestRunningApplication {
             // Testene kjører opprydningen selv med kjør(), så den planlagte jobben ikke sletter testdata underveis.
             startApp(startOpprydningsjobb = false)
         }
+
+        val testDatabase = TestDatabase(appCtx.dataSource)
     }
 }
 
