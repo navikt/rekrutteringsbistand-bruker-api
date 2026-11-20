@@ -1,6 +1,7 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.nyheter
 
 import no.nav.toi.rekrutteringsbistand.bruker.api.JacksonConfig
+import no.nav.toi.rekrutteringsbistand.bruker.api.TestRunningApplication
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test

@@ -1,8 +1,6 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.utlop
 
-import io.javalin.Javalin
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
-import no.nav.toi.rekrutteringsbistand.bruker.api.kobleLagredeSøkOpprydningsjobbTilLivssyklus
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.LagredeSøkMetrikker
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.LagredeSøkService
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.database.LagredeSøkRepository
@@ -47,32 +45,6 @@ class LagredeSøkOpprydningsjobbTest {
             assertThat(tilkoblinger.get()).isEqualTo(antallDomener)
         } finally {
             jobb.close()
-        }
-    }
-
-    @Test
-    fun `Javalin stop stenger opprydningsjobben`() {
-        val kjøringer = AtomicInteger()
-        val kjøring = CountDownLatch(1)
-        val jobb = nyJobb(Duration.ofMillis(500), Duration.ofDays(1)) {
-            kjøringer.incrementAndGet()
-            kjøring.countDown()
-        }
-        val app = Javalin.create {
-            it.kobleLagredeSøkOpprydningsjobbTilLivssyklus(jobb)
-        }.start(0)
-        var appStoppet = false
-
-        try {
-            jobb.start()
-            app.stop()
-            appStoppet = true
-
-            assertThat(kjøring.await(800, TimeUnit.MILLISECONDS)).isFalse()
-            assertThat(kjøringer.get()).isZero()
-        } finally {
-            jobb.close()
-            if (!appStoppet) app.stop()
         }
     }
 

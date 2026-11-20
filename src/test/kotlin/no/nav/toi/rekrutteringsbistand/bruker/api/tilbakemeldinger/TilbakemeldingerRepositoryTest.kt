@@ -1,12 +1,15 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger
 
-import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.TestRunningApplication
+import no.nav.toi.rekrutteringsbistand.bruker.api.TestRunningApplication
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import java.time.LocalDateTime
+import java.util.UUID
 import javax.sql.DataSource
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -14,6 +17,33 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
 
     lateinit var tilbakemeldingerRepository: TilbakemeldingerRepository
     lateinit var dataSource: DataSource
+
+    // Testdata for å slippe å definere tilbakemeldinger i hver test
+    private val tilbakemeldingMedNavn = Tilbakemelding(
+        navn = "A123456",
+        tilbakemelding = "Savner filter på arbeidssted",
+        kategori = TilbakemeldingKategori.REKRUTTERINGSTREFF,
+    )
+
+    private val annenTilbakemeldingMedNavn = Tilbakemelding(
+        navn = "B123456",
+        tilbakemelding = "Vanskelig å finne stillingsoppdrag",
+        kategori = TilbakemeldingKategori.STILLINGSOPPDRAG,
+    )
+
+    private val anonymTilbakemelding = Tilbakemelding(
+        navn = null,
+        tilbakemelding = "Anonym tilbakemelding",
+        kategori = TilbakemeldingKategori.ANNET,
+    )
+
+    private val behandletTilbakemelding = Tilbakemelding(
+        navn = "C123456",
+        tilbakemelding = "Ønsker eksport til Excel",
+        kategori = TilbakemeldingKategori.STILLINGSOPPDRAG,
+        status = TilbakemeldingStatus.VURDERING,
+        trelloLenke = "https://trello.com/c/x",
+    )
 
     @BeforeAll
     fun setup() {
@@ -23,9 +53,7 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
 
     @AfterEach
     fun cleanup() {
-        dataSource.connection.use {
-            it.prepareStatement("DELETE FROM tilbakemeldinger").executeUpdate()
-        }
+        testDatabase.slettAlleTilbakemeldinger()
     }
 
     @Test
@@ -204,5 +232,151 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
 
         val (tilbakemeldinger, _) = tilbakemeldingerRepository.hentSide(1)
         assertTrue(tilbakemeldinger.none { it.id == lagret.id })
+    }
+
+    @Test
+    fun `slettNavnBatch med tom liste returnerer 0 og endrer ingenting`() {
+        val tilbakemelding =  tilbakemeldingerRepository.opprett(tilbakemeldingMedNavn)
+
+        val antallSlettede = tilbakemeldingerRepository.slettNavnBatch(emptyList())
+
+        assertEquals(0, antallSlettede)
+        assertEquals(tilbakemeldingMedNavn.navn, testDatabase.hentTilbakemelding(tilbakemelding.id).navn)
+    }
+
+    @Test
+    fun `slettNavnBatch sletter navn for angitte id-er og returnerer antall`() {
+        val tilbakemelding1 = tilbakemeldingerRepository.opprett(tilbakemeldingMedNavn)
+        val tilbakemelding2 = tilbakemeldingerRepository.opprett(annenTilbakemeldingMedNavn)
+
+        val antallSlettede = tilbakemeldingerRepository.slettNavnBatch(listOf(tilbakemelding1.id, tilbakemelding2.id))
+
+        assertEquals(2, antallSlettede)
+        assertNull(testDatabase.hentTilbakemelding(tilbakemelding1.id).navn)
+        assertNull(testDatabase.hentTilbakemelding(tilbakemelding2.id).navn)
+    }
+
+    @Test
+    fun `slettNavnBatch sletter ikke navn fra tilbakemeldinger som ikke er i listen`() {
+        val slettes = tilbakemeldingerRepository.opprett(tilbakemeldingMedNavn)
+        val beholdes = tilbakemeldingerRepository.opprett(annenTilbakemeldingMedNavn)
+
+        tilbakemeldingerRepository.slettNavnBatch(listOf(slettes.id))
+
+        assertNull(testDatabase.hentTilbakemelding(slettes.id).navn)
+        assertEquals(annenTilbakemeldingMedNavn.navn, testDatabase.hentTilbakemelding(beholdes.id).navn)
+    }
+
+    @Test
+    fun `slettNavnBatch beholder øvrige felter`() {
+        val tilbakemelding = tilbakemeldingerRepository.opprett(behandletTilbakemelding)
+        val tilbakemeldingFørSletting = tilbakemelding.copy()
+
+        tilbakemeldingerRepository.slettNavnBatch(listOf(tilbakemelding.id))
+
+        assertEquals(tilbakemeldingFørSletting.copy(navn = null), testDatabase.hentTilbakemelding(tilbakemelding.id))
+    }
+
+    @Test
+    fun `slettNavnBatch med ukjente id-er returnerer 0`() {
+        val tilbakemelding = tilbakemeldingerRepository.opprett(behandletTilbakemelding)
+
+        val antallSlettede = tilbakemeldingerRepository.slettNavnBatch(listOf(UUID.randomUUID(), UUID.randomUUID()))
+
+        assertEquals(0, antallSlettede)
+        assertEquals(behandletTilbakemelding.navn, testDatabase.hentTilbakemelding(tilbakemelding.id).navn)
+    }
+
+    @Test
+    fun `slettNavnBatch med blanding av kjente og ukjente id-er teller kun kjente`() {
+        val kjentTilbakemelding = tilbakemeldingerRepository.opprett(tilbakemeldingMedNavn)
+
+        val antallSlettede = tilbakemeldingerRepository.slettNavnBatch(listOf(kjentTilbakemelding.id, UUID.randomUUID()))
+
+        assertEquals(1, antallSlettede)
+        assertNull(testDatabase.hentTilbakemelding(kjentTilbakemelding.id).navn)
+    }
+
+    @Test
+    fun `slettNavnBatch med duplikate id-er oppdaterer raden én gang`() {
+        val tilbakemelding = tilbakemeldingerRepository.opprett(tilbakemeldingMedNavn)
+
+        val antallSlettede = tilbakemeldingerRepository.slettNavnBatch(listOf(tilbakemelding.id, tilbakemelding.id))
+
+        assertEquals(1, antallSlettede)
+        assertNull(testDatabase.hentTilbakemelding(tilbakemelding.id).navn)
+    }
+
+    @Test
+    fun `slettNavnBatch teller ikke rader der navn allerede er null`() {
+        val anonymTilbakemelding = tilbakemeldingerRepository.opprett(this@TilbakemeldingerRepositoryTest.anonymTilbakemelding)
+        val navngittTilbakemelding = testDatabase.opprettTilbakemelding("Navngitt")
+
+        val antallSlettede = tilbakemeldingerRepository.slettNavnBatch(listOf(anonymTilbakemelding.id, navngittTilbakemelding.id))
+
+        assertEquals(1, antallSlettede)
+        assertNull(testDatabase.hentTilbakemelding(anonymTilbakemelding.id).navn)
+        assertNull(testDatabase.hentTilbakemelding(navngittTilbakemelding.id).navn)
+    }
+
+    @Test
+    fun `hentTilbakemeldingerDatoPassertMedAngittTid returnerer også tilbakemeldinger uten navn`() {
+        val anonymTilbakemelding = testDatabase.opprettTilbakemelding(null, LocalDateTime.now().minusMonths(3))
+
+        val resultat = tilbakemeldingerRepository.hentTilbakemeldingerDatoPassertMedAngittTid(2, 0)
+
+        assertEquals(listOf(anonymTilbakemelding), resultat)
+    }
+
+    @Test
+    fun `hentTilbakemeldingerDatoPassertMedAngittTid returnerer kun tilbakemeldinger eldre enn angitte måneder`() {
+        val gammelTilbakemelding = testDatabase.opprettTilbakemelding("Gammel", LocalDateTime.now().minusMonths(2).minusDays(1))
+        testDatabase.opprettTilbakemelding("Ny", LocalDateTime.now().minusMonths(2).plusDays(1))
+
+        val resultat = tilbakemeldingerRepository.hentTilbakemeldingerDatoPassertMedAngittTid(2, 0)
+
+        assertEquals(listOf(gammelTilbakemelding), resultat)
+    }
+
+    @Test
+    fun `hentTilbakemeldingerDatoPassertMedAngittTid returnerer kun tilbakemeldinger eldre enn angitte dager`() {
+        val gammelTilbakemelding = testDatabase.opprettTilbakemelding("Gammel", LocalDateTime.now().minusDays(11))
+        testDatabase.opprettTilbakemelding("Ny", LocalDateTime.now().minusDays(9))
+
+        val resultat = tilbakemeldingerRepository.hentTilbakemeldingerDatoPassertMedAngittTid(0, 10)
+
+        assertEquals(listOf(gammelTilbakemelding.id), resultat.map { it.id })
+    }
+
+    @Test
+    fun `hentTilbakemeldingerDatoPassertMedAngittTid kombinerer måneder og dager`() {
+        val gammelTilbakemelding = testDatabase.opprettTilbakemelding("Gammel", LocalDateTime.now().minusMonths(2).minusDays(6))
+        testDatabase.opprettTilbakemelding("Innenfor", LocalDateTime.now().minusMonths(2).minusDays(4))
+
+        val resultat = tilbakemeldingerRepository.hentTilbakemeldingerDatoPassertMedAngittTid(2, 5)
+
+        assertEquals(listOf(gammelTilbakemelding), resultat)
+    }
+
+    @Test
+    fun `hentTilbakemeldingerDatoPassertMedAngittTid returnerer tom liste når ingen er gamle nok`() {
+        tilbakemeldingerRepository.opprett(tilbakemeldingMedNavn)
+
+        val resultat = tilbakemeldingerRepository.hentTilbakemeldingerDatoPassertMedAngittTid(2, 0)
+
+        assertTrue(resultat.isEmpty())
+    }
+
+    @Test
+    fun `hentTilbakemeldingerDatoPassertMedAngittTid returnerer alle felter`() {
+        val tilbakemelding = testDatabase.opprettTilbakemelding("Bruker", LocalDateTime.now().minusMonths(3))
+        val forventetResultat = tilbakemeldingerRepository.oppdater(
+            tilbakemelding.id,
+            TilbakemeldingOppdaterRequest(TilbakemeldingKategori.ANNET, "https://trello.com/c/y", TilbakemeldingStatus.FULLFORT)
+        )
+
+        val resultat = tilbakemeldingerRepository.hentTilbakemeldingerDatoPassertMedAngittTid(2, 0)
+
+        assertEquals(listOf(forventetResultat), resultat)
     }
 }

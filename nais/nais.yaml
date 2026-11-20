@@ -31,6 +31,7 @@ spec:
         - id: loki
         - id: elastic
       enabled: true
+  leaderElection: true
   gcp:
     sqlInstances:
       - type: {{ postgres_versjon }}
