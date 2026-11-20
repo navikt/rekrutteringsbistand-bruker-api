@@ -308,13 +308,24 @@ class TilbakemeldingerRepositoryTest : TestRunningApplication() {
     }
 
     @Test
-    fun `slettNavnBatch teller også rader der navn allerede er null`() {
+    fun `slettNavnBatch teller ikke rader der navn allerede er null`() {
         val anonymTilbakemelding = tilbakemeldingerRepository.opprett(this@TilbakemeldingerRepositoryTest.anonymTilbakemelding)
+        val navngittTilbakemelding = testDatabase.opprettTilbakemelding("Navngitt")
 
-        val antallSlettede = tilbakemeldingerRepository.slettNavnBatch(listOf(anonymTilbakemelding.id))
+        val antallSlettede = tilbakemeldingerRepository.slettNavnBatch(listOf(anonymTilbakemelding.id, navngittTilbakemelding.id))
 
         assertEquals(1, antallSlettede)
         assertNull(testDatabase.hentTilbakemelding(anonymTilbakemelding.id).navn)
+        assertNull(testDatabase.hentTilbakemelding(navngittTilbakemelding.id).navn)
+    }
+
+    @Test
+    fun `hentTilbakemeldingerDatoPassertMedAngittTid returnerer også tilbakemeldinger uten navn`() {
+        val anonymTilbakemelding = testDatabase.opprettTilbakemelding(null, LocalDateTime.now().minusMonths(3))
+
+        val resultat = tilbakemeldingerRepository.hentTilbakemeldingerDatoPassertMedAngittTid(2, 0)
+
+        assertEquals(listOf(anonymTilbakemelding), resultat)
     }
 
     @Test

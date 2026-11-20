@@ -108,7 +108,7 @@ class TilbakemeldingerRepository(private val dataSource: DataSource) {
             val uuidArray = c.createArrayOf("uuid", tilbakemeldingIder.toTypedArray())
             c.prepareStatement(
                 """
-                UPDATE $TABLE SET $COL_NAVN = NULL WHERE $COL_ID = any(?)
+                UPDATE $TABLE SET $COL_NAVN = NULL WHERE $COL_ID = any(?) AND $COL_NAVN IS NOT NULL
                 """.trimIndent()
             ).use { ps ->
                 ps.setObject(1, uuidArray)

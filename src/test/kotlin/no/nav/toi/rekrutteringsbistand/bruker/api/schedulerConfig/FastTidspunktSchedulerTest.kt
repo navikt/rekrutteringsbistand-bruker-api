@@ -126,6 +126,21 @@ class FastTidspunktSchedulerTest {
     }
 
     @Test
+    fun `jobben kjører i en tråd med navn utledet fra jobbens klassenavn`() {
+        val kjørt = CountDownLatch(1)
+        var trådnavn: String? = null
+        val jobb = FakeJobb {
+            trådnavn = Thread.currentThread().name
+            kjørt.countDown()
+        }
+
+        nyScheduler(jobb, kjøretidspunkt = LocalTime.now(tidssone).plusSeconds(1)).start()
+
+        assertThat(kjørt.await(3, TimeUnit.SECONDS)).isTrue()
+        assertThat(trådnavn).isEqualTo("fake-jobb")
+    }
+
+    @Test
     fun `hver N dag krever positivt antall dager`() {
         assertThatThrownBy { SchedulerGjentakelse.HverNDag(0, LocalDate.now()) }
             .isInstanceOf(IllegalArgumentException::class.java)

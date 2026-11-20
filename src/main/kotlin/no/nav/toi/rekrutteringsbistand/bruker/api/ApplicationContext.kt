@@ -128,7 +128,6 @@ open class ApplicationContext(
         log.info("Stopper applikasjonen")
         listOf<() -> Unit>(
             { stoppSchedulere() },
-            { leaderElection.close() },
             { lagredeSøkOpprydningsjobb.close() },
             { javalin?.stop() },
             { dataSource.close() },

@@ -49,7 +49,7 @@ class TilbakemeldingerOpprydningScheduler(
             tilbakemeldingerRepository.hentTilbakemeldingerDatoPassertMedAngittTid(
                 ANTALL_MÅNEDER_ETTER_TILBAKEMELDING_NAVN_SLETTES.toLong(),
                 0
-            )
+            ).filter { it.navn != null }
         if (tilbakemeldingerSomSkalFåSlettetNavn.isEmpty()) {
             log.info("Ingen tilbakemeldinger å slette navn (ident) fra")
             return
@@ -58,6 +58,6 @@ class TilbakemeldingerOpprydningScheduler(
 
         log.info("Start opprydning/sletting av navn (identer) fra tilbakemeldinger")
         val antallTilbakemeldingerMedSlettetNavn = tilbakemeldingerRepository.slettNavnBatch(tilbakemeldingIder)
-        log.info("${antallTilbakemeldingerMedSlettetNavn} tilbakemelding(er) eldre enn ${ANTALL_MÅNEDER_ETTER_TILBAKEMELDING_NAVN_SLETTES} har fått navn (ident) slettet")
+        log.info("${antallTilbakemeldingerMedSlettetNavn} tilbakemelding(er) eldre enn ${ANTALL_MÅNEDER_ETTER_TILBAKEMELDING_NAVN_SLETTES} måneder har fått navn (ident) slettet")
     }
 }
