@@ -1,7 +1,7 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok
 
 import no.nav.toi.rekrutteringsbistand.bruker.api.JacksonConfig
-import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.TestRunningApplication
+import no.nav.toi.rekrutteringsbistand.bruker.api.TestRunningApplication
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.domene.LagredeSøkDomene
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.utlop.Utløpsregler
 import org.assertj.core.api.Assertions.assertThat

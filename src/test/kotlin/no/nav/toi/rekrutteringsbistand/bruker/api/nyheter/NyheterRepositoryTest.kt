@@ -1,5 +1,6 @@
 package no.nav.toi.rekrutteringsbistand.bruker.api.nyheter
 
+import no.nav.toi.rekrutteringsbistand.bruker.api.TestRunningApplication
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test

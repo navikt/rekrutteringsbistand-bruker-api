@@ -2,6 +2,7 @@ package no.nav.toi.rekrutteringsbistand.bruker.api
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import io.javalin.Javalin
 import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
@@ -15,6 +16,7 @@ import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.NyheterController
 import no.nav.toi.rekrutteringsbistand.bruker.api.nyheter.NyheterRepository
 import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.TilbakemeldingerController
 import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.TilbakemeldingerRepository
+import no.nav.toi.rekrutteringsbistand.bruker.api.tilbakemeldinger.TilbakemeldingerOpprydningScheduler
 import no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger.BrukerinnstillingerController
 import no.nav.toi.rekrutteringsbistand.bruker.api.brukerinnstillinger.BrukerinnstillingerRepository
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.LagredeSøkController
@@ -22,13 +24,17 @@ import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.LagredeSøkMetrikke
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.utlop.LagredeSøkOpprydningsjobb
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.database.LagredeSøkRepository
 import no.nav.toi.rekrutteringsbistand.bruker.api.lagredesok.LagredeSøkService
+import org.flywaydb.core.Flyway
 import java.time.Clock
 import java.time.ZoneId
 import java.util.*
-import javax.sql.DataSource
 
 @Suppress("MemberVisibilityCanBePrivate")
-open class ApplicationContext(envInn: Map<String, String>) {
+open class ApplicationContext(
+    envInn: Map<String, String>,
+    val leaderElection: LeaderElectionInterface
+) {
+    private var javalin: Javalin? = null
 
     val env: Map<String, String> by lazy { envInn }
 
@@ -44,17 +50,23 @@ open class ApplicationContext(envInn: Map<String, String>) {
         LogbackMetrics().bindTo(registry)
     }
 
-    val nyheterRepository = NyheterRepository(dataSource)
-
     val naisController = NaisController(prometheusRegistry)
 
+    val nyheterRepository = NyheterRepository(dataSource)
     val nyheterController = NyheterController(JacksonConfig.objectMapper, nyheterRepository)
 
     val tilbakemeldingerRepository = TilbakemeldingerRepository(dataSource)
     val tilbakemeldingerController = TilbakemeldingerController(JacksonConfig.objectMapper, tilbakemeldingerRepository)
+    val tilbakemeldingerOpprydningScheduler by lazy {
+        TilbakemeldingerOpprydningScheduler(
+            tilbakemeldingerRepository,
+            leaderElection
+        )
+    }
 
     val brukerinnstillingerRepository = BrukerinnstillingerRepository(dataSource)
-    val brukerinnstillingerController = BrukerinnstillingerController(JacksonConfig.objectMapper, brukerinnstillingerRepository)
+    val brukerinnstillingerController =
+        BrukerinnstillingerController(JacksonConfig.objectMapper, brukerinnstillingerRepository)
 
     val klokke: Clock = Clock.system(ZoneId.of("Europe/Oslo"))
     val lagredeSøkMetrikker = LagredeSøkMetrikker(prometheusRegistry, klokke)
@@ -87,7 +99,7 @@ open class ApplicationContext(envInn: Map<String, String>) {
     private fun getenv(key: String): String =
         env[key] ?: throw NullPointerException("Det finnes ingen miljøvariabel med navn [$key]")
 
-    private fun createDataSource(): DataSource =
+    private fun createDataSource(): HikariDataSource =
         HikariConfig().apply {
             val base = getenv("NAIS_DATABASE_REKRUTTERINGSBISTAND_BRUKER_API_REKRUTTERINGSBISTAND_BRUKER_API_JDBC_URL")
             jdbcUrl = "$base&reWriteBatchedInserts=true"
@@ -101,4 +113,40 @@ open class ApplicationContext(envInn: Map<String, String>) {
             initializationFailTimeout = 5_000
             validate()
         }.let(::HikariDataSource)
+
+    fun startApp(startOpprydningsjobb: Boolean = true) {
+        check(javalin == null) { "Applikasjonen har allerede en server" }
+        log.info("Starter applikasjonen")
+
+        kjørFlywayMigreringer()
+        javalin = startJavalin(port = 8080)
+        startSchedulere()
+        if (startOpprydningsjobb) lagredeSøkOpprydningsjobb.start()
+    }
+
+    fun stoppApp() {
+        log.info("Stopper applikasjonen")
+        listOf<() -> Unit>(
+            { stoppSchedulere() },
+            { lagredeSøkOpprydningsjobb.close() },
+            { javalin?.stop() },
+            { dataSource.close() },
+        ).forEach { steg ->
+            runCatching { steg() }.onFailure { log.error("Feil under stopping av applikasjonen", it) }
+        }
+    }
+
+    private fun kjørFlywayMigreringer() {
+        Flyway.configure().dataSource(dataSource).load().migrate()
+    }
+
+    fun startSchedulere() {
+        log.info("Starter schedulere")
+        tilbakemeldingerOpprydningScheduler.start()
+    }
+
+    fun stoppSchedulere() {
+        log.info("Stopper schedulere")
+        tilbakemeldingerOpprydningScheduler.stopp()
+    }
 }
