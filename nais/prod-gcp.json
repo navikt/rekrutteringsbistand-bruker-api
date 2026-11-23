@@ -4,6 +4,8 @@
   "cluster-fss": "prod-fss",
   "gcp_db_tier": "db-custom-1-3840",
   "gcp_disk_autoresize": true,
+  "gcp_db_point_in_time_recovery": true,
+  "gcp_db_query_string_length": 4500,
   "min_replicas": 2,
   "max_replicas": 4,
   "postgres_versjon": "POSTGRES_17",
