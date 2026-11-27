@@ -14,12 +14,12 @@ class KandidatLagredeSøkKomponenttest : LagredeSøkKomponenttest(LagredeSøkDom
     fun `avviser 11 sifre i en fri verdi uten å gjenta verdien i svaret`() {
         listOf(
             "kompetanse=$syntetiskNummer",
-            "arbeidserfaring=123456+78901",
-            "kompetanse=123456%2C78901",
+            "arbeidserfaring=000000+00001",
+            "kompetanse=000000%2C00001",
         ).forEach { filter ->
             val respons = send(opprettForespørsel(nyIdent(), "Kokk i Bergen", filter))
             assertThat(respons.statusCode()).`as`(filter).isEqualTo(400)
-            assertThat(respons.body()).`as`(filter).doesNotContain("123456").doesNotContain("78901")
+            assertThat(respons.body()).`as`(filter).doesNotContain("000000").doesNotContain("00001")
         }
     }
 
