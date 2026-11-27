@@ -14,6 +14,10 @@ class FødselsnummersjekkTest {
         listOf(
             "00000000001",
             "00000000002",
+            "00000000034",
+            "00000000056",
+            "00000000078",
+            "00000000090",
             "000000 00001",
             "00 00 00 000 01",
             "000000\u00A000001",
@@ -21,6 +25,10 @@ class FødselsnummersjekkTest {
             "000000  00001",
             "000000 \u00A0 00001",
             "００００００００００１",
+            "０００００００００２３",
+            "０００００００００４５",
+            "０００００００００６７",
+            "０００００００００８９",
             "Treff 00000000001 Oslo",
             "kokk00000000001",
         ).forEach { assertThat(Fødselsnummersjekk.inneholderFødselsnummer(it)).describedAs(it).isTrue() }

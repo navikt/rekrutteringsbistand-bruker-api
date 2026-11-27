@@ -127,6 +127,10 @@ class KandidatFilterTest {
     fun `avviser 11 sifre i frie verdier, også med mellomrom og delt over to verdier`() {
         listOf(
             "kompetanse=00000000001",
+            "kompetanse=00000000034",
+            "kompetanse=00000000056",
+            "kompetanse=00000000078",
+            "kompetanse=00000000090",
             "arbeidserfaring=000000+00001",
             "yrke=000000%2000001",
             "kompetanse=000000%2C00001",
@@ -135,6 +139,10 @@ class KandidatFilterTest {
             "kompetanse=Ring+000000%2C00001+i+dag",
             "sted=Ola+00000000001+%28Kommune%29",
             "kompetanse=%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%91",
+            "kompetanse=%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%92%EF%BC%93",
+            "kompetanse=%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%94%EF%BC%95",
+            "kompetanse=%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%96%EF%BC%97",
+            "kompetanse=%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%90%EF%BC%98%EF%BC%99",
         ).forEach {
             assertThat(regler.erGyldig(it)).`as`(it).isFalse()
         }
