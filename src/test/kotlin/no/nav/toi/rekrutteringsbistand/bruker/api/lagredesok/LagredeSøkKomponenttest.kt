@@ -31,7 +31,7 @@ abstract class LagredeSøkKomponenttest(protected val domene: LagredeSøkDomene)
     protected val objectMapper = JacksonConfig.objectMapper
     protected val endepunkt = "$lokalUrlBase/api/lagrede-sok/${domene.stinavn}"
     protected val idag = LocalDate.now(ZoneId.of("Europe/Oslo"))
-    protected val syntetiskNummer = "12345678901"
+    protected val syntetiskNummer = "00000000001"
 
     protected val andreDomener get() = LagredeSøkDomene.entries - domene
 
